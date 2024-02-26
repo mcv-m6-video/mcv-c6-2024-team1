@@ -31,8 +31,8 @@ search_space = {
 
 study = optuna.create_study(
     sampler=optuna.samplers.GridSampler(search_space),
-    direction="maximize",  # redundand, since grid search
+    direction="maximize",
     storage="sqlite:///iou_segmentation.db",
-    study_name="1",
+    study_name="2",
 )
 study.optimize(objective)

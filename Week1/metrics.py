@@ -55,7 +55,7 @@ def mIoU(detection, gt):
             continue
 
         det = detection[frame]
-        annot = gt[frame]
+        annot = gt[frame].copy()
 
         # For each detection
         for det_obj in det:
