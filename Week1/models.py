@@ -235,7 +235,7 @@ class GaussianMixtureModel:
             frame_id = str(int(self.video.get(cv2.CAP_PROP_POS_FRAMES)) - 1)
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
             foreground_channels = np.abs(frame - self.background_mean) >= alpha * (self.background_std + 2)
-            foreground = np.all(foreground_channels, axis=2)
+            foreground = np.any(foreground_channels, axis=2)
             foreground = (foreground * 255).astype(np.uint8)
             postprocessed_foreground = self.postprocess(foreground)
             prediction = self.detect_object(postprocessed_foreground)
@@ -261,6 +261,6 @@ class GaussianMixtureModel:
             frames[i] = color_frame
 
         self.background_mean = np.mean(frames, axis=0)
-        print(self.background_mean.shape())
+        print(self.background_mean.shape)
         self.background_std = np.std(frames, axis=0)
-        print(self.background_std.shape())
+        print(self.background_std.shape)

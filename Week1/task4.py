@@ -3,8 +3,8 @@ from utils import *
 import json
 
 STORE_VIDEO = True
-VIDEO_PATH = "D:/Documentos/Uni/Master/C6/mcv-c6-2024-team1/Data/AICity_data/train/S03/c010/vdo.avi"
-ANNOTATIONS_PATH = "D:/Documentos/Uni/Master/C6/mcv-c6-2024-team1/Data/ai_challenge_s03_c010-full_annotation.xml"
+VIDEO_PATH = "../Data/AICity_data/train/S03/c010/vdo.avi"
+ANNOTATIONS_PATH = "../Data/ai_challenge_s03_c010-full_annotation.xml"
 
 
 def task4():
