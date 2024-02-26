@@ -89,3 +89,47 @@ class GaussianModel:
 
         self.background_mean = np.mean(frames, axis=0)
         self.background_std = np.std(frames, axis=0)
+
+
+class AdaptativeGaussianModel(GaussianModel):
+    def __init__(
+        self,
+        video_path: str,
+        train_split: float = 0.25,
+        kernel_open_size: int = 3,
+        kernel_close_size: int = 31,
+        area_threshold: int = 1500,
+        rho: float = 0.4,
+    ) -> None:
+        super().__init__(
+            video_path, train_split, kernel_open_size, kernel_close_size, area_threshold
+        )
+        self.rho = rho
+    
+    def updateBackground(self, foreground:np.ndarray, frame: np.ndarray):
+        updated_mean = self.rho * frame + (1 - self.rho) * self.background_mean
+        updated_var = self.rho * (frame - self.background_mean) ** 2 + (1 - self.rho) * self.background_std**2
+        updated_std = np.sqrt(updated_var)
+
+        self.background_mean = np.where(foreground == 0, updated_mean, self.background_mean)
+        self.background_std = np.where(foreground == 0, updated_std, self.background_std)
+
+    def segment(self, alpha: float):
+        frames = []
+        predictions = {}
+        test_frames = int(self.num_frames * (1 - self.train_split))
+        for _ in tqdm(range(test_frames), desc="Predicting test frames"):
+            ret, frame = self.video.read()
+            if not ret:
+                break
+            frame_id = str(int(self.video.get(cv2.CAP_PROP_POS_FRAMES)) - 1)
+            gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            foreground = np.abs(gray_frame - self.background_mean) >= alpha * (self.background_std + 2)
+            foreground = (foreground * 255).astype(np.uint8)
+            self.updateBackground(foreground, gray_frame)
+            postprocessed_foreground = self.postprocess(foreground)
+            prediction = self.detect_object(postprocessed_foreground)
+            predictions.update({frame_id: prediction})
+            frames.append(cv2.cvtColor(postprocessed_foreground, cv2.COLOR_GRAY2RGB))
+
+        return predictions, frames
