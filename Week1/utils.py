@@ -5,6 +5,21 @@ import random
 
 # Read the XML file of week 1 GT annotations
 def readXMLtoAnnotation(annotationFile, remParked = False):
+    """
+    Read XML file of annotations and parse it to annotation dictionary.
+
+    Parameters
+    ----------
+    annotationFile : str
+        Path to the XML annotation file.
+    remParked : bool, optional
+        Whether to remove parked objects from the annotations, by default False.
+
+    Returns
+    -------
+    dict, list
+        Dictionary containing annotations and list of image ids.
+    """
     # Read XML
     file = ET.parse(annotationFile)
     root = file.getroot()
@@ -34,6 +49,7 @@ def readXMLtoAnnotation(annotationFile, remParked = False):
 
     return annotations
 
+# Remove the annotations until a certain number of frame
 def removeFirstAnnotations(stopFrame, annots):
     newAnnots = {}
 
@@ -47,6 +63,19 @@ def removeFirstAnnotations(stopFrame, annots):
 
 # Read txt detection lines to annot
 def readTXTtoDet(txtPath):
+    """
+    Read detections from a text file and parse them into image ids, confidences, and bounding boxes.
+
+    Parameters
+    ----------
+    txtPath : str
+        Path to the text file containing detections.
+
+    Returns
+    -------
+    tuple
+        Tuple containing image ids, confidences, and bounding boxes.
+    """
     # Read file
     file = open(txtPath, 'r')
     lines = file.readlines()
@@ -80,6 +109,21 @@ def readTXTtoDet(txtPath):
 
 # Parse from annotations format to detection format
 def annoToDetecFormat(annot, className):
+    """
+    Convert annotations to detection format for a specific class.
+
+    Parameters
+    ----------
+    annot : dict
+        Dictionary containing annotations.
+    className : str
+        Name of the class for which annotations should be converted.
+
+    Returns
+    -------
+    list, np.ndarray
+        List of image ids and array of bounding boxes in detection format.
+    """
     
     imageIds = []
     BB = np.zeros((0,4))
@@ -95,6 +139,27 @@ def annoToDetecFormat(annot, className):
 
 # Draw detection and annotation boxes in image
 def drawBoxes(img, det, annot, colorDet, colorAnnot):
+    """
+    Draw detection and annotation boxes on an image.
+
+    Parameters
+    ----------
+    img : np.ndarray
+        Image on which boxes will be drawn.
+    det : np.ndarray
+        Array of bounding boxes for detections.
+    annot : list
+        List of dictionaries containing annotation information.
+    colorDet : tuple
+        Color for drawing detection boxes.
+    colorAnnot : tuple
+        Color for drawing annotation boxes.
+
+    Returns
+    -------
+    np.ndarray
+        Image with drawn boxes.
+    """
     img = img.copy()
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     
@@ -116,6 +181,22 @@ def drawBoxes(img, det, annot, colorDet, colorAnnot):
 
 
 def makeVideo(images, videoName, fps = 10):
+    """
+    Create a video from a list of images.
+
+    Parameters
+    ----------
+    images : list
+        List of images to create the video from.
+    videoName : str
+        Name of the output video file.
+    fps : int, optional
+        Frames per second for the output video, by default 10.
+
+    Returns
+    -------
+    None
+    """
     # Define the codec and create VideoWriter object
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
     out = cv2.VideoWriter(videoName, fourcc, fps, (images[0].shape[1], images[0].shape[0]), True)
@@ -127,7 +208,7 @@ def makeVideo(images, videoName, fps = 10):
 
 def randomFrame(videoPath):
     """
-    This functions reads a video and returns a random frame and the number.
+    Read a random frame from a video.
 
     Parameters
     ----------
