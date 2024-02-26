@@ -8,21 +8,18 @@ def readXMLtoAnnotation(annotationFile, remParked = False):
     # Read XML
     file = ET.parse(annotationFile)
     root = file.getroot()
-    
     annotations = {}
-    image_ids = []
+
     # Find objects
     for child in root:
         if child.tag == "track":
             # Get class
             className = child.attrib["label"]
-            #if className != classObj:
-            #    continue
             for obj in child:
                 if className == "car":
                     objParked = obj[0].text
                     # Do not store if it is parked and we want to remove parked objects
-                    if objParked=="true" and remParked:
+                    if objParked == "true" and remParked:
                         continue
                 frame = obj.attrib["frame"]
                 xtl = float(obj.attrib["xtl"])
@@ -30,47 +27,23 @@ def readXMLtoAnnotation(annotationFile, remParked = False):
                 xbr = float(obj.attrib["xbr"])
                 ybr = float(obj.attrib["ybr"])
                 bbox = [xtl, ytl, xbr, ybr]
-                if frame in image_ids:
+                if frame in annotations:
                     annotations[frame].append({"name": className, "bbox": bbox})
                 else:
-                    image_ids.append(frame)
                     annotations[frame] = [{"name": className, "bbox": bbox}]
-    
-    
-    return annotations, image_ids
 
-def removeFirstAnnotations(stopFrame, annots, imageIds):
-    """
-    This function removes the annotations until a certain number of frame
+    return annotations
 
-    Parameters
-    ----------
-    stopFrame : int
-        Until what number of frame remove the annotations.
-    annots : dict
-        Dictionary of annotations.
-    imageIds : list
-        List of frames of annotations.
-
-    Returns
-    -------
-    newAnnots : dict
-        Annotations with the removed frames.
-    newImageIds : list
-        Annotation frame ids with removed frames.
-
-    """
+def removeFirstAnnotations(stopFrame, annots):
     newAnnots = {}
-    newImageIds = []
-    
+
     # Store only next frame annotations
-    for frameNum in imageIds:
-        num = int(frameNum)
+    for frame in annots.keys():
+        num = int(frame)
         if num > stopFrame:
-            newImageIds.append(frameNum)
-            newAnnots[frameNum] = annots[frameNum]
+            newAnnots[frame] = annots[frame]
             
-    return newAnnots, newImageIds
+    return newAnnots
 
 # Read txt detection lines to annot
 def readTXTtoDet(txtPath):
