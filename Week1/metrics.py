@@ -15,28 +15,27 @@ def iou(box1, box2):
     y1 = max(box1[1], box2[1])
     x2 = min(box1[2], box2[2])
     y2 = min(box1[3], box2[3])
-
+    
     # If the intersection rectangle is empty, return 0.0
     if x1 >= x2 or y1 >= y2:
         return 0.0
-
+    
     # Calculate the area of intersection rectangle
     intersection_area = (x2 - x1) * (y2 - y1)
-
+    
     # Calculate the area of both bounding boxes
     box1_area = (box1[2] - box1[0]) * (box1[3] - box1[1])
     box2_area = (box2[2] - box2[0]) * (box2[3] - box2[1])
-
+    
     # Calculate the area of union of the two bounding boxes
     union_area = box1_area + box2_area - intersection_area
-
+    
     # Calculate IoU
     iou = intersection_area / union_area
-
+    
     return iou
 
-
-def mIoU(detection, anno, imagenames, classname):
+def mIoU(detection, anno, imagenames):
     """
     This function computes the mean intersection over union of the detections and annotations
 
@@ -48,8 +47,6 @@ def mIoU(detection, anno, imagenames, classname):
         Dictionary with annotations.
     imagenames : list
         image names (frames).
-    classname : str
-        class name.
 
     Returns
     -------
@@ -57,59 +54,62 @@ def mIoU(detection, anno, imagenames, classname):
         mIoU value.
 
     """
-
+    
     # first load gt
     # extract gt objects for this class
     class_recs = {}
     for imagename in imagenames:
-        R = [obj for obj in anno[imagename] if obj["name"] == classname]
+        R = [obj for obj in anno[imagename] if obj["name"]]
         bbox = np.array([x["bbox"] for x in R])
         class_recs[imagename] = {"bbox": bbox}
-
+    
     image_ids = detection[0]
     BB = detection[2]
-    iou_images = np.zeros(len(imagenames))
-
+    iou_images = np.array([])
+    tp = 0
+    fn = 0
+    fp = 0
+    
     # For each image
     for i, imagename in enumerate(imagenames):
-
+        
         # Get gt and det
         GTbbs = class_recs[imagename]["bbox"]
         indexDet = np.array(image_ids) == imagename
         bb = BB[indexDet, :].astype(float)
 
         det = [False] * bb.shape[0]
-
+        
         iou_image = np.zeros(GTbbs.shape[0])
         # For each GT box
         for gt_bbox_i in range(GTbbs.shape[0]):
             BBGT = GTbbs[gt_bbox_i, :].astype(float)
-
+            
             # Find best prediction
             max_iou = -1
             max_iou_ind = -1
             for pred_bbox_i in range(bb.shape[0]):
-
+                
                 predBB = bb[pred_bbox_i, :]
-
+                
                 iou_val = iou(BBGT, predBB)
-
+                
                 if iou_val > 0.01 and iou_val > max_iou and not det[pred_bbox_i]:
                     max_iou = iou_val
                     max_iou_ind = pred_bbox_i
-
+    
             if max_iou_ind != -1:
                 det[max_iou_ind] = True
                 iou_image[gt_bbox_i] = max_iou
+        
+        iou_images = np.concatenate((iou_images, iou_image))
+        tp += np.sum(iou_image != 0)
+        fn += np.sum(iou_image == 0)
+        fp += np.sum(np.array(det) == False)
+            
+    return iou_images.sum()/(tp + fn + fp)
 
-        # Add FP to iou_image
-        iou_images[i] = np.sum(iou_image) * 2 / (iou_image.shape[0] + len(det))
-        # iou_images[i] = np.mean(iou_image)
-
-    return iou_images.mean()
-
-
-def voc_eval(detection, anno, imagenames, classname, ovthresh=0.5, use_07_metric=True):
+def voc_eval(detection, anno, imagenames, ovthresh=0.5, use_07_metric=True):
     """rec, prec, ap = voc_eval(detection,
                                 anno,
                                 imagenames,
@@ -121,7 +121,6 @@ def voc_eval(detection, anno, imagenames, classname, ovthresh=0.5, use_07_metric
         BBox detected
     annopath: annotations
         BBox annotations
-    classname: Category name (duh)
     [ovthresh]: Overlap threshold (default = 0.5)
     [use_07_metric]: Whether to use VOC07's 11 point AP computation
         (default False)
@@ -132,12 +131,13 @@ def voc_eval(detection, anno, imagenames, classname, ovthresh=0.5, use_07_metric
     class_recs = {}
     npos = 0
     for imagename in imagenames:
-        R = [obj for obj in anno[imagename] if obj["name"] == classname]
+        R = [obj for obj in anno[imagename]]
         bbox = np.array([x["bbox"] for x in R])
         det = [False] * len(R)
         npos = npos + len(R)
         class_recs[imagename] = {"bbox": bbox, "det": det}
 
+    
     image_ids = detection[0]
     confidence = detection[1]
     BB = detection[2]
@@ -152,10 +152,14 @@ def voc_eval(detection, anno, imagenames, classname, ovthresh=0.5, use_07_metric
     tp = np.zeros(nd)
     fp = np.zeros(nd)
     for d in range(nd):
-        R = class_recs[image_ids[d]]
+        if image_ids[d] in class_recs.keys():
+            R = class_recs[image_ids[d]]
+            BBGT = R["bbox"].astype(float)
+        else:
+            BBGT = np.array([])
         bb = BB[d, :].astype(float)
         ovmax = -np.inf
-        BBGT = R["bbox"].astype(float)
+        
 
         if BBGT.size > 0:
             # compute overlaps
@@ -170,9 +174,9 @@ def voc_eval(detection, anno, imagenames, classname, ovthresh=0.5, use_07_metric
 
             # union
             uni = (
-                    (bb[2] - bb[0] + 1.0) * (bb[3] - bb[1] + 1.0)
-                    + (BBGT[:, 2] - BBGT[:, 0] + 1.0) * (BBGT[:, 3] - BBGT[:, 1] + 1.0)
-                    - inters
+                (bb[2] - bb[0] + 1.0) * (bb[3] - bb[1] + 1.0)
+                + (BBGT[:, 2] - BBGT[:, 0] + 1.0) * (BBGT[:, 3] - BBGT[:, 1] + 1.0)
+                - inters
             )
 
             overlaps = inters / uni
@@ -180,11 +184,11 @@ def voc_eval(detection, anno, imagenames, classname, ovthresh=0.5, use_07_metric
             jmax = np.argmax(overlaps)
 
         if ovmax > ovthresh:
-            if not R["det"][jmax]:
-                tp[d] = 1.0
-                R["det"][jmax] = 1
-            else:
-                fp[d] = 1.0
+                if not R["det"][jmax]:
+                    tp[d] = 1.0
+                    R["det"][jmax] = 1
+                else:
+                    fp[d] = 1.0
         else:
             fp[d] = 1.0
 
@@ -198,7 +202,6 @@ def voc_eval(detection, anno, imagenames, classname, ovthresh=0.5, use_07_metric
     ap = voc_ap(rec, prec, use_07_metric)
 
     return rec, prec, ap
-
 
 def voc_ap(rec, prec, use_07_metric=True):
     """Compute VOC AP given precision and recall. If use_07_metric is true, uses
