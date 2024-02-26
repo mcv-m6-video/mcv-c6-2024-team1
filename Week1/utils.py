@@ -142,6 +142,16 @@ def drawBoxes(img, det, annot, colorDet, colorAnnot):
     return img
 
 
+def makeVideo(images, videoName, fps = 10):
+    # Define the codec and create VideoWriter object
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    out = cv2.VideoWriter(videoName, fourcc, fps, (images[0].shape[1], images[0].shape[0]), True)
+
+    for i in range(len(images)):
+        out.write(images[i].astype(np.uint8))
+
+    out.release()
+
 def randomFrame(videoPath):
     """
     This functions reads a video and returns a random frame and the number.

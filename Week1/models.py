@@ -57,6 +57,7 @@ class GaussianModel:
         return predictions
 
     def segment(self, alpha: float):
+        frames = []
         predictions = {}
         test_frames = int(self.num_frames * (1 - self.train_split))
         for _ in tqdm(range(test_frames), desc="Predicting test frames"):
@@ -66,12 +67,13 @@ class GaussianModel:
             frame_id = str(int(self.video.get(cv2.CAP_PROP_POS_FRAMES)) - 1)
             gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
             foreground = np.abs(gray_frame - self.background_mean) >= alpha * (self.background_std + 2)
-            foreground = 255 - (foreground * 255).astype(np.uint8)
+            foreground = (foreground * 255).astype(np.uint8)
             postprocessed_foreground = self.postprocess(foreground)
             prediction = self.detect_object(postprocessed_foreground)
             predictions.update({frame_id: prediction})
+            frames.append(cv2.cvtColor(postprocessed_foreground, cv2.COLOR_GRAY2RGB))
 
-        return predictions
+        return predictions, frames
 
     def compute_mean_std(self):
         width = int(self.video.get(cv2.CAP_PROP_FRAME_WIDTH))
@@ -84,7 +86,6 @@ class GaussianModel:
             if not ret:
                 break
             gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-            gray_frame = gray_frame / 255.0
             frames[i] = gray_frame
 
         self.background_mean = np.mean(frames, axis=0)
