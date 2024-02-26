@@ -1,2 +1,5 @@
 Data/**
 **/__pycache__
+**/*.mp4
+**/.idea
+**/.DS_Store
