@@ -12,6 +12,16 @@ class GaussianModel:
         kernel_close_size: int = 31,
         area_threshold: int = 1500,
     ) -> None:
+        """
+        Initialize the GaussianModel.
+
+        Args:
+            video_path (str): Path to the video file.
+            train_split (float): Ratio of frames to use for training.
+            kernel_open_size (int): Size of the kernel for opening operation.
+            kernel_close_size (int): Size of the kernel for closing operation.
+            area_threshold (int): Minimum area to consider as an object.
+        """
         self.video = cv2.VideoCapture(video_path)
         self.num_frames = self.video.get(cv2.CAP_PROP_FRAME_COUNT)
         print(f"Number of frames: {self.num_frames}")
@@ -22,6 +32,15 @@ class GaussianModel:
         self.area_threshold = area_threshold
 
     def postprocess(self, binary: np.ndarray):
+        """
+        Apply morphological operations to post-process binary image.
+
+        Args:
+            binary (np.ndarray): Binary image to be post-processed.
+
+        Returns:
+            np.ndarray: Post-processed binary image.
+        """
         kernel_open = np.ones((self.kernel_open_size, self.kernel_open_size))
         kernel_close = np.ones((self.kernel_close_size, self.kernel_close_size))
         postprocessed = cv2.morphologyEx(binary, cv2.MORPH_OPEN, kernel_open)
@@ -29,6 +48,16 @@ class GaussianModel:
         return postprocessed
 
     def detect_object(self, binary: np.ndarray, plot: bool = False):
+        """
+        Detect objects in the binary image.
+
+        Args:
+            binary (np.ndarray): Binary image containing objects.
+            plot (bool): Whether to plot detected objects.
+
+        Returns:
+            list: List of dictionaries containing bounding boxes of detected objects.
+        """
         contours, _ = cv2.findContours(
             binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
         )
@@ -57,6 +86,15 @@ class GaussianModel:
         return predictions
 
     def segment(self, alpha: float):
+        """
+        Segment objects in the video frames.
+
+        Args:
+            alpha (float): Alpha value for segmentation.
+
+        Returns:
+            dict, list: Predictions containing bounding boxes and segmented frames.
+        """
         frames = []
         predictions = {}
         test_frames = int(self.num_frames * (1 - self.train_split))
@@ -76,6 +114,9 @@ class GaussianModel:
         return predictions, frames
 
     def compute_mean_std(self):
+        """
+        Compute mean and standard deviation of background frames.
+        """
         width = int(self.video.get(cv2.CAP_PROP_FRAME_WIDTH))
         height = int(self.video.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
