@@ -401,3 +401,173 @@ class GaussianColorModel(GaussianModel):
 
         self.background_mean = cum_mean
         self.background_std = np.sqrt(cum_var)
+
+
+class AdaptativeGaussianColorModel(GaussianColorModel):
+    def __init__(
+        self,
+        video_path: str,
+        train_split: float = 0.25,
+        kernel_open_size: int = 3,
+        kernel_close_size: int = 31,
+        area_threshold: int = 1500,
+        color_space=cv2.COLOR_BGR2HSV,
+        reverse_color_space=cv2.COLOR_HSV2BGR,
+        rho: float = 0.1,
+        median_filter_before: int = 7,
+        median_filter_after: int = 7,
+        use_mask: bool = True,
+    ) -> None:
+        """
+        Initialize the GaussianModel.
+
+        Args:
+            video_path (str): Path to the video file.
+            train_split (float): Ratio of frames to use for training.
+            kernel_open_size (int): Size of the kernel for opening operation.
+            kernel_close_size (int): Size of the kernel for closing operation.
+            area_threshold (int): Minimum area to consider as an object.
+        """
+        super().__init__(
+            video_path, train_split, kernel_open_size, kernel_close_size, area_threshold, color_space
+        )
+        self.reverse_color_space = reverse_color_space
+        self.rho = rho
+        self.median_filter_before = median_filter_before
+        self.median_filter_after = median_filter_after
+        self.use_mask = use_mask
+        self.color_space = color_space
+
+    def postprocess(self, binary: np.ndarray):
+        """
+        Apply morphological operations to post-process binary image.
+
+        Args:
+            binary (np.ndarray): Binary image to be post-processed.
+
+        Returns:
+            np.ndarray: Post-processed binary image.
+        """
+        postprocessed = binary.copy()
+        kernel_open = np.ones((self.kernel_open_size, self.kernel_open_size))
+        kernel_close = np.ones((self.kernel_close_size, self.kernel_close_size))
+
+        if not (self.median_filter_before is None):
+            postprocessed = cv2.medianBlur(postprocessed, self.median_filter_before)
+
+        postprocessed = cv2.morphologyEx(postprocessed, cv2.MORPH_OPEN, kernel_open)
+        postprocessed = cv2.morphologyEx(postprocessed, cv2.MORPH_CLOSE, kernel_close)
+
+        if not (self.median_filter_after is None):
+            postprocessed = cv2.medianBlur(postprocessed, self.median_filter_after)
+        return postprocessed
+
+    def detect_object(self, binary: np.ndarray, plot: bool = False):
+        """
+        Detect objects in the binary image.
+
+        Args:
+            binary (np.ndarray): Binary image containing objects.
+            plot (bool): Whether to plot detected objects.
+
+        Returns:
+            list: List of dictionaries containing bounding boxes of detected objects.
+        """
+        contours, _ = cv2.findContours(
+            binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+        )
+        predictions = []
+        height = binary.shape[0]
+        width = binary.shape[1]
+        binary_colored = cv2.cvtColor(binary, cv2.COLOR_GRAY2BGR)
+        mask = np.zeros((height, width))
+        for contour in contours:
+            area = cv2.contourArea(contour)
+            if area > self.area_threshold:
+                contour = contour[:, 0, :]
+                xmin = int(np.min(contour[:, 0]))
+                ymin = int(np.min(contour[:, 1]))
+                xmax = int(np.max(contour[:, 0]))
+                ymax = int(np.max(contour[:, 1]))
+                if (xmax - xmin) < width * 0.4 and (ymax - ymin) < height * 0.4:
+                    pred = {"bbox": [xmin, ymin, xmax, ymax]}
+                    predictions.append(pred)
+                    cv2.rectangle(
+                        binary_colored, (xmin, ymin), (xmax, ymax), (0, 0, 255), 2
+                    )
+                    mask[ymin : ymax + 1, xmin : xmax + 1] = 255
+                    if plot:
+                        cv2.imshow("Binary", binary_colored)
+                        cv2.waitKey(0)
+
+        return predictions, binary_colored, mask
+
+    def update_background(
+        self, foreground: np.ndarray, frame: np.ndarray, rho: float = 0.1
+    ):
+        updated_mean = rho * frame + (1 - rho) * self.background_mean
+        updated_var = (
+            rho * (frame - self.background_mean) ** 2
+            + (1 - rho) * self.background_std**2
+        )
+        updated_std = np.sqrt(updated_var)
+
+        foreground_ch = foreground[:, :, np.newaxis] * np.ones(3)
+
+        self.background_mean = np.where(
+            foreground_ch == 0, updated_mean, self.background_mean
+        )
+        self.background_std = np.where(
+            foreground_ch == 0, updated_std, self.background_std
+        )
+
+    def segment(self, alpha: float):
+        """
+        Segment objects in the video frames.
+
+        Args:
+            alpha (float): Alpha value for segmentation.
+
+        Returns:
+            dict, list: Predictions containing bounding boxes and segmented frames.
+        """
+        frames = []
+        background = []
+        binary = []
+        predictions = {}
+        test_frames = int(self.num_frames * (1 - self.train_split))
+        for _ in tqdm(range(test_frames), desc="Predicting test frames"):
+            ret, frame = self.video.read()
+            if not ret:
+                break
+
+            frame_id = str(int(self.video.get(cv2.CAP_PROP_POS_FRAMES)) - 1)
+            frame = cv2.cvtColor(frame, self.color_space)
+            foreground_channels = np.abs(frame - self.background_mean) >= alpha * (
+                self.background_std + 2
+            )
+            foreground = np.any(foreground_channels, axis=2)
+            foreground = (foreground * 255).astype(np.uint8)
+
+            postprocessed_foreground = self.postprocess(foreground)
+            prediction, binary_colored, mask = self.detect_object(
+                postprocessed_foreground
+            )
+            background_img = postprocessed_foreground
+
+            if (
+                self.use_mask
+            ):  # only take into account as foreground what has been detected as object
+                background_img = mask
+
+            if int(frame_id) % 30 == 0:
+                self.update_background(background_img, frame, self.rho)
+
+            predictions.update({frame_id: prediction})
+            frames.append(cv2.cvtColor(postprocessed_foreground, cv2.COLOR_GRAY2RGB))
+            background.append(
+                cv2.cvtColor(self.background_mean.astype(np.uint8), self.reverse_color_space)
+            )
+            binary.append(binary_colored.astype(np.uint8))
+
+        return predictions, frames, background, binary
