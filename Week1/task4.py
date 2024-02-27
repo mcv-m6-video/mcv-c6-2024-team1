@@ -3,8 +3,8 @@ from utils import *
 import json
 
 STORE_VIDEO = True
-VIDEO_PATH = "D:/Documentos/Uni/Master/C6/mcv-c6-2024-team1/Data/AICity_data/train/S03/c010/vdo.avi"
-ANNOTATIONS_PATH = "D:/Documentos/Uni/Master/C6/mcv-c6-2024-team1/Data/ai_challenge_s03_c010-full_annotation.xml"
+VIDEO_PATH = "./Data/AICity_data/train/S03/c010/vdo.avi"
+ANNOTATIONS_PATH = "./Data/ai_challenge_s03_c010-full_annotation.xml"
 
 
 def task4():
@@ -15,8 +15,7 @@ def task4():
     if STORE_VIDEO:
         makeVideo(frames, "video4.mp4")
     annots, imageNames = readXMLtoAnnotation(ANNOTATIONS_PATH, remParked=True)
-    annots, imageNames = removeFirstAnnotations(
-        int(gaussian.num_frames * gaussian.train_split) - 1, annots, imageNames)
+    annots, imageNames = removeFirstAnnotations(int(gaussian.num_frames * gaussian.train_split) - 1, annots, imageNames)
     json.dump(annots, open("annots.json", "w")) 
 
 

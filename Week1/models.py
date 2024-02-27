@@ -131,6 +131,7 @@ class GaussianModel:
 
         self.background_mean = np.mean(frames, axis=0)
         self.background_std = np.std(frames, axis=0)
+        print()
 
 
 class GaussianMixtureModel:
@@ -235,7 +236,7 @@ class GaussianMixtureModel:
             frame_id = str(int(self.video.get(cv2.CAP_PROP_POS_FRAMES)) - 1)
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
             foreground_channels = np.abs(frame - self.background_mean) >= alpha * (self.background_std + 2)
-            foreground = np.all(foreground_channels, axis=2)
+            foreground = np.any(foreground_channels, axis=2)
             foreground = (foreground * 255).astype(np.uint8)
             postprocessed_foreground = self.postprocess(foreground)
             prediction = self.detect_object(postprocessed_foreground)
@@ -252,15 +253,41 @@ class GaussianMixtureModel:
         height = int(self.video.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
         train_frames = int(self.num_frames * self.train_split)
-        frames = np.empty((train_frames, height, width, 3), dtype=np.float32)
+        #frames = np.empty((train_frames, height, width, 3), dtype=np.float32)
+        batch = 20
+        cum_n = 0
+        cum_mean = 0
+        cum_var = 0
+        f_len = min(batch, train_frames)
+        frames = np.empty((f_len, height, width, 3), dtype=np.float32)
         for i in tqdm(range(train_frames), desc="Computing mean and std"):
             ret, frame = self.video.read()
             if not ret:
                 break
             color_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-            frames[i] = color_frame
+            frames[i % batch] = color_frame
+            if i % batch == batch-1:
+                f_mean = np.mean(frames, axis=0)
+                f_var = np.var(frames, axis=0)
 
-        self.background_mean = np.mean(frames, axis=0)
-        print(self.background_mean.shape())
-        self.background_std = np.std(frames, axis=0)
-        print(self.background_std.shape())
+                combined_n = cum_n + f_len
+                combined_mean = (cum_n * cum_mean + f_len * f_mean)/(combined_n)
+                combined_var = (cum_n * cum_var + f_len * f_var)/(combined_n) + cum_n * f_len * (cum_mean - f_mean)**2 / combined_n**2
+
+                cum_n, cum_mean, cum_var = combined_n, combined_mean, combined_var
+
+                f_len = min(batch, train_frames - i - 1)
+                frames = np.empty((f_len, height, width, 3), dtype=np.float32)
+        if f_len > 0:
+            f_mean = np.mean(frames, axis=0)
+            f_var = np.var(frames, axis=0)
+
+            combined_n = cum_n + f_len
+            combined_mean = (cum_n * cum_mean + f_len * f_mean)/(combined_n)
+            combined_var = (cum_n * cum_var + f_len * f_var)/(combined_n) + cum_n * f_len * (cum_mean - f_mean)**2 / combined_n**2
+
+            cum_n, cum_mean, cum_var = combined_n, combined_mean, combined_var
+        #self.background_mean = np.mean(frames, axis=0)
+        #self.background_std = np.std(frames, axis=0)
+        self.background_mean = cum_mean
+        self.background_std = np.sqrt(cum_var) # TODO: Check this is the same as np.std(frames, axis=0)
