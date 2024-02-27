@@ -10,7 +10,7 @@ ANNOTATIONS_PATH = "../Data/ai_challenge_s03_c010-full_annotation.xml"
 def task1():
     gaussian = GaussianModel(VIDEO_PATH)
     gaussian.compute_mean_std()
-    predictions, frames, det = gaussian.segment(alpha=7)
+    predictions, frames, det = gaussian.segment(alpha=4)
     json.dump(predictions, open("predictions/predictions.json", "w"))
     if STORE_VIDEO:
         makeVideo(frames, "video_t1.mp4")
@@ -19,7 +19,7 @@ def task1():
     annots = removeFirstAnnotations(
         int(gaussian.num_frames * gaussian.train_split) - 1, annots
     )
-    json.dump(annots, open("annotations/annots.json", "w"))
+    # json.dump(annots, open("annotations/annots.json", "w"))
 
 
 if __name__ == "__main__":

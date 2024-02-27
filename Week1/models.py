@@ -9,8 +9,8 @@ class GaussianModel:
         video_path: str,
         train_split: float = 0.25,
         kernel_open_size: int = 3,
-        kernel_close_size: int = 30,
-        area_threshold: int = 5000,
+        kernel_close_size: int = 20,
+        area_threshold: int = 3000,
     ) -> None:
         """
         Initialize the GaussianModel.
@@ -146,8 +146,8 @@ class AdaptativeGaussianModel(GaussianModel):
         video_path: str,
         train_split: float = 0.25,
         kernel_open_size: int = 3,
-        kernel_close_size: int = 30,
-        area_threshold: int = 5000,
+        kernel_close_size: int = 20,
+        area_threshold: int = 3000,
         rho: float = 0.6,
         median_filter_before: int = 3,
         median_filter_after: int = 3,
@@ -309,8 +309,8 @@ class GaussianColorModel(GaussianModel):
         video_path: str,
         train_split: float = 0.25,
         kernel_open_size: int = 3,
-        kernel_close_size: int = 31,
-        area_threshold: int = 1500,
+        kernel_close_size: int = 20,
+        area_threshold: int = 3000,
         color_space=cv2.COLOR_BGR2HSV,
     ) -> None:
         super().__init__(
@@ -408,8 +408,8 @@ class AdaptativeGaussianColorModel(GaussianColorModel):
         video_path: str,
         train_split: float = 0.25,
         kernel_open_size: int = 3,
-        kernel_close_size: int = 31,
-        area_threshold: int = 1500,
+        kernel_close_size: int = 20,
+        area_threshold: int = 3000,
         color_space=cv2.COLOR_BGR2HSV,
         reverse_color_space=cv2.COLOR_HSV2BGR,
         rho: float = 0.1,

@@ -19,7 +19,6 @@ def task4():
     annots = removeFirstAnnotations(
         int(gaussian.num_frames * gaussian.train_split) - 1, annots
     )
-    json.dump(annots, open("annotations/annots_Lab.json", "w"))
 
 
 if __name__ == "__main__":
