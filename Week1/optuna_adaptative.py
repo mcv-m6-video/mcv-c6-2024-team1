@@ -1,6 +1,6 @@
 from models import *
 from utils import *
-from metrics import mIoU
+from metrics import mAP
 import optuna
 import json
 
@@ -34,9 +34,9 @@ def objective(trial):
         use_mask=trial.suggest_categorical("use_mask", [False, True]),
     )
     gaussian.compute_mean_std()
-    predictions, _ = gaussian.segment(alpha=BEST_PARAMS["alpha"])
+    predictions, _, _, _ = gaussian.segment(alpha=BEST_PARAMS["alpha"])
 
-    return mIoU(predictions, ANNOTATIONS)
+    return mAP(ANNOTATIONS, predictions)
 
 
 search_space = {
