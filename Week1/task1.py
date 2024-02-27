@@ -2,7 +2,7 @@ from models import *
 from utils import *
 import json
 
-STORE_VIDEO = True
+STORE_VIDEO = False
 VIDEO_PATH = "../Data/AICity_data/train/S03/c010/vdo.avi"
 ANNOTATIONS_PATH = "../Data/ai_challenge_s03_c010-full_annotation.xml"
 
