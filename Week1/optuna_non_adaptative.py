@@ -14,10 +14,10 @@ def objective(trial):
         video_path=VIDEO_PATH,
         kernel_open_size=trial.suggest_categorical("kernel_open_size", [3, 5, 10]),
         kernel_close_size=trial.suggest_categorical("kernel_close_size", [3, 5, 10, 20, 30]),
-        area_threshold=trial.suggest_categorical("area_threshold", [1000, 2000, 3000, 4000, 5000, 6000])
-        rho=trial.suggest_categorical("rho", [0.05, 0.1, 0.2, 0.3, 0.5, 0.6])
-        median_filter_before=trial.suggest_categorical("median_filter_before", [None, 3, 7, 15])
-        median_filter_after=trial.suggest_categorical("median_filter_after", [None, 3, 7, 15])
+        area_threshold=trial.suggest_categorical("area_threshold", [1000, 2000, 3000, 4000, 5000, 6000]),
+        rho=trial.suggest_categorical("rho", [0.05, 0.1, 0.2, 0.3, 0.5, 0.6]),
+        median_filter_before=trial.suggest_categorical("median_filter_before", [None, 3, 7, 15]),
+        median_filter_after=trial.suggest_categorical("median_filter_after", [None, 3, 7, 15]),
         use_mask=trial.suggest_categorical("use_mask", [False,True])
     )
     gaussian.compute_mean_std()
