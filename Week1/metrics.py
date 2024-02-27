@@ -36,9 +36,9 @@ def iou(box1, box2):
     return iou
 
 
-def mIoU(detection, gt):
+def evaluate(detection, gt):
     """
-    Computes the mean Intersection over Union (mIoU) of a set of detections and ground truth.
+    Computes some metrics given a set of detections and ground truth.
     Parameters:
         detection (dict): Detections in the format {frame: [{'bbox': [...]}, ...]}.
         gt (dict): Ground truth in the format {frame: [{'name': ..., 'bbox': [...]}, ...]}.
@@ -110,12 +110,10 @@ def mIoU(detection, gt):
         recall.append(tp / (tp + fn) if tp + fn > 0 else 0)
         f1.append(2 * (precision[-1] * recall[-1]) / (precision[-1] + recall[-1]) if precision[-1] + recall[-1] > 0 else 0)
 
-    # Compute the average precision, recall, and F1 score over all frames
+    # Compute the average IoU, precision, recall, and F1 score over all frames
+    mIoU = np.mean(iou_images)
     precision = np.mean(precision)
     recall = np.mean(recall)
     f1_score = np.mean(f1)
-
-    # Compute mIoU
-    mIoU = np.mean(iou_images)
 
     return mIoU, precision, recall, f1_score
