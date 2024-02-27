@@ -54,11 +54,13 @@ def evaluate(detection, gt):
     precision = []
     recall = []
     f1 = []
+
     # For each frame
     for frame in gt.keys():
         tp = 0  # True Positives
         fp = 0  # False Positives
         fn = 0  # False Negatives
+
         # Get detections and ground truth
         if frame not in detection:
             iou_images = np.append(iou_images, np.zeros(len(gt[frame])))
@@ -76,21 +78,25 @@ def evaluate(detection, gt):
             # Get detection box
             det_bbox = det_obj["bbox"]
             max_iou = 0
-            max_annot = None
+            max_annot_idx = -1
+
             # For each annotation
-            for annot_obj in annot:
+            for idx, annot_obj in enumerate(annot):
                 # Get annotation box
                 annot_bbox = annot_obj["bbox"]
 
                 # Compute IoU
                 iou_val = iou(det_bbox, annot_bbox)
+
                 # We compute the maximum iou for each detection with the ground truth
                 # and remove the detection with the highest iou from the list of ground truth
                 if iou_val > max_iou:
                     max_iou = iou_val
-                    max_annot = annot_obj
-            if max_annot is not None:
-                annot.remove(max_annot)
+                    max_annot_idx = idx
+
+            if max_annot_idx != -1:
+                # Remove the annotation with the highest IoU from the list of ground truth
+                annot.pop(max_annot_idx)
 
             iou_images = np.append(iou_images, max_iou)
 
