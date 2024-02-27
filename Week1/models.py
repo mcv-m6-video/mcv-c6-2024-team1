@@ -10,8 +10,8 @@ class GaussianModel:
         video_path: str,
         train_split: float = 0.25,
         kernel_open_size: int = 3,
-        kernel_close_size: int = 7,
-        area_threshold: int = 1500,
+        kernel_close_size: int = 30,
+        area_threshold: int = 5000,
     ) -> None:
         """
         Initialize the GaussianModel.
@@ -65,6 +65,7 @@ class GaussianModel:
         predictions = []
         height = binary.shape[0]
         width = binary.shape[1]
+        binary_colored = cv2.cvtColor(binary, cv2.COLOR_GRAY2BGR)
 
         for contour in contours:
             area = cv2.contourArea(contour)
@@ -78,15 +79,15 @@ class GaussianModel:
                 if (xmax - xmin) < width * 0.4 and (ymax - ymin) < height * 0.4:
                     pred = {"bbox": [xmin, ymin, xmax, ymax]}
                     predictions.append(pred)
+                    binary_colored = cv2.cvtColor(binary, cv2.COLOR_GRAY2BGR)
+                    cv2.rectangle(
+                        binary_colored, (xmin, ymin), (xmax, ymax), (0, 0, 255), 2
+                    )
                     if plot:
-                        binary_colored = cv2.cvtColor(binary, cv2.COLOR_GRAY2BGR)
-                        cv2.rectangle(
-                            binary_colored, (xmin, ymin), (xmax, ymax), (0, 0, 255), 2
-                        )
                         cv2.imshow("Binary", binary_colored)
                         cv2.waitKey(0)
 
-        return predictions
+        return predictions, binary_colored
 
     def segment(self, alpha: float):
         """
@@ -99,6 +100,7 @@ class GaussianModel:
             dict, list: Predictions containing bounding boxes and segmented frames.
         """
         frames = []
+        binary = []
         predictions = {}
         test_frames = int(self.num_frames * (1 - self.train_split))
         for _ in tqdm(range(test_frames), desc="Predicting test frames"):
@@ -112,11 +114,12 @@ class GaussianModel:
             )
             foreground = (foreground * 255).astype(np.uint8)
             postprocessed_foreground = self.postprocess(foreground)
-            prediction = self.detect_object(postprocessed_foreground)
+            prediction, binary_colored = self.detect_object(postprocessed_foreground)
             predictions.update({frame_id: prediction})
             frames.append(cv2.cvtColor(postprocessed_foreground, cv2.COLOR_GRAY2RGB))
+            binary.append(binary_colored.astype(np.uint8))
 
-        return predictions, frames
+        return predictions, frames, binary
 
     def compute_mean_std(self):
         """
@@ -233,7 +236,7 @@ class AdaptativeGaussianModel(GaussianModel):
 
         return predictions, binary_colored, mask
 
-    def updateBackground(
+    def update_background(
         self, foreground: np.ndarray, frame: np.ndarray, rho: float = 0.1
     ):
         updated_mean = rho * frame + (1 - rho) * self.background_mean
@@ -289,7 +292,7 @@ class AdaptativeGaussianModel(GaussianModel):
                 background_img = mask
 
             if int(frame_id) % 30 == 0:
-                self.updateBackground(background_img, gray_frame, self.rho)
+                self.update_background(background_img, gray_frame, self.rho)
 
             predictions.update({frame_id: prediction})
             frames.append(cv2.cvtColor(postprocessed_foreground, cv2.COLOR_GRAY2RGB))
@@ -355,7 +358,6 @@ class GaussianColorModel(GaussianModel):
         height = int(self.video.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
         train_frames = int(self.num_frames * self.train_split)
-        # frames = np.empty((train_frames, height, width, 3), dtype=np.float32)
         batch = 20
         cum_n = 0
         cum_mean = 0
@@ -382,6 +384,7 @@ class GaussianColorModel(GaussianModel):
 
                 f_len = min(batch, train_frames - i - 1)
                 frames = np.empty((f_len, height, width, 3), dtype=np.float32)
+
         if f_len > 0:
             f_mean = np.mean(frames, axis=0)
             f_var = np.var(frames, axis=0)
@@ -393,7 +396,6 @@ class GaussianColorModel(GaussianModel):
             ) + cum_n * f_len * (cum_mean - f_mean) ** 2 / combined_n**2
 
             cum_n, cum_mean, cum_var = combined_n, combined_mean, combined_var
-        # self.background_mean = np.mean(frames, axis=0)
-        # self.background_std = np.std(frames, axis=0)
+
         self.background_mean = cum_mean
         self.background_std = np.sqrt(cum_var)
