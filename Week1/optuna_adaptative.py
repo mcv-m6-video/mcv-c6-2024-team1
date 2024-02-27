@@ -40,16 +40,16 @@ def objective(trial):
 
 
 search_space = {
-    "kernel_open_size": [3, 5, 10],
-    "kernel_close_size": [3, 5, 10, 20, 30],
-    "area_threshold": [1000, 2000, 3000, 4000, 5000, 6000],
-    "alpha": [2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+    "median_filter_before": [None, 3, 7, 15],
+    "median_filter_after": [None, 3, 7, 15],
+    "rho": [0.05, 0.1, 0.2, 0.3, 0.5, 0.6],
+    "use_mask": [False, True],
 }
 
 study = optuna.create_study(
     sampler=optuna.samplers.GridSampler(search_space),
     direction="maximize",  # redundand, since grid search
     storage="sqlite:///iou_segmentation.db",
-    study_name="1",
+    study_name="1_non_adaptative",
 )
 study.optimize(objective)
