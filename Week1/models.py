@@ -148,7 +148,7 @@ class AdaptativeGaussianModel(GaussianModel):
         kernel_open_size: int = 3,
         kernel_close_size: int = 20,
         area_threshold: int = 3000,
-        rho: float = 0.6,
+        rho: float = 0.3,
         median_filter_before: int = 3,
         median_filter_after: int = 3,
         use_mask: bool = False,
@@ -236,7 +236,7 @@ class AdaptativeGaussianModel(GaussianModel):
         return predictions, binary_colored, mask
 
     def update_background(
-        self, foreground: np.ndarray, frame: np.ndarray, rho: float = 0.1
+        self, foreground: np.ndarray, frame: np.ndarray, rho: float = 0.3
     ):
         updated_mean = rho * frame + (1 - rho) * self.background_mean
         updated_var = (
@@ -412,10 +412,10 @@ class AdaptativeGaussianColorModel(GaussianColorModel):
         area_threshold: int = 3000,
         color_space=cv2.COLOR_BGR2HSV,
         reverse_color_space=cv2.COLOR_HSV2BGR,
-        rho: float = 0.1,
-        median_filter_before: int = 7,
-        median_filter_after: int = 7,
-        use_mask: bool = True,
+        rho: float = 0.3,
+        median_filter_before: int = 3,
+        median_filter_after: int = 3,
+        use_mask: bool = False,
     ) -> None:
         """
         Initialize the GaussianModel.
@@ -502,7 +502,7 @@ class AdaptativeGaussianColorModel(GaussianColorModel):
         return predictions, binary_colored, mask
 
     def update_background(
-        self, foreground: np.ndarray, frame: np.ndarray, rho: float = 0.1
+        self, foreground: np.ndarray, frame: np.ndarray, rho: float = 0.3
     ):
         updated_mean = rho * frame + (1 - rho) * self.background_mean
         updated_var = (
