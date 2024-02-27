@@ -15,7 +15,7 @@ def task4_2():
     json.dump(predictions, open("predictions/predictions_Lab.json", "w"))
     if STORE_VIDEO:
         makeVideo(frames, "video_4_2_Lab.mp4")
-        makeVideo(bg, "video_bg_4_2.mp4")
+        makeVideo(bg, "video_bg_4_2_Lab.mp4")
         makeVideo(det, "video_det_4_2_Lab.mp4")
     annots = readXMLtoAnnotation(ANNOTATIONS_PATH, remParked=True)
     annots = removeFirstAnnotations(
