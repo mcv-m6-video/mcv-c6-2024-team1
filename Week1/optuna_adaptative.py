@@ -1,6 +1,6 @@
 from models import *
 from utils import *
-from metrics import evaluate
+from metrics import mAP
 import optuna
 import json
 
@@ -36,8 +36,7 @@ def objective(trial):
     gaussian.compute_mean_std()
     predictions, _, _, _ = gaussian.segment(alpha=BEST_PARAMS["alpha"])
 
-    mIoU, precision, recall, f1_score = evaluate(predictions, ANNOTATIONS)
-    return mIoU + precision + recall + f1_score
+    return mAP(ANNOTATIONS, predictions)
 
 
 search_space = {

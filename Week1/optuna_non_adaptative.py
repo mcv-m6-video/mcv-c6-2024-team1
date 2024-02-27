@@ -1,6 +1,6 @@
 from models import *
 from utils import *
-from metrics import evaluate
+from metrics import mAP
 import optuna
 import json
 
@@ -24,8 +24,7 @@ def objective(trial):
     gaussian.compute_mean_std()
     predictions, _, _ = gaussian.segment(alpha=trial.suggest_float("alpha", 2, 11))
 
-    mIoU, precision, recall, f1_score = evaluate(predictions, ANNOTATIONS)
-    return mIoU + precision + recall + f1_score
+    return mAP(ANNOTATIONS, predictions)
 
 
 search_space = {
@@ -39,6 +38,6 @@ study = optuna.create_study(
     sampler=optuna.samplers.GridSampler(search_space),
     direction="maximize",  # redundand, since grid search
     storage="sqlite:///iou_segmentation.db",
-    study_name="1",
+    study_name="12131",
 )
 study.optimize(objective)
