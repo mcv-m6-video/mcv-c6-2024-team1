@@ -42,7 +42,7 @@ def objective(trial):
 search_space = {
     "median_filter_before": [None, 3, 7, 15],
     "median_filter_after": [None, 3, 7, 15],
-    "rho": [0.05, 0.1, 0.2],
+    "rho": [0.05, 0.1, 0.2, 0.3, 0.5, 0.6],
     "use_mask": [False, True],
 }
 

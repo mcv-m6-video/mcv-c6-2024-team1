@@ -44,15 +44,28 @@ def mIoU(detection, gt):
         gt (dict): Ground truth in the format {frame: [{'name': ..., 'bbox': [...]}, ...]}.
     Returns:
         float: mIoU of the detections and ground truth.
+        float: Precision of the detections and ground truth.
+        float: Recall of the detections and ground truth.
+        float: F1 score of the detections and ground truth.
     """
     # Initialize variables
     iou_images = np.array([])
-
+    tp = fp = fn = 0
+    precision = []
+    recall = []
+    f1 = []
     # For each frame
     for frame in gt.keys():
+        tp = 0  # True Positives
+        fp = 0  # False Positives
+        fn = 0  # False Negatives
         # Get detections and ground truth
         if frame not in detection:
             iou_images = np.append(iou_images, np.zeros(len(gt[frame])))
+            # If there are no detections, all ground truth are False Negatives
+            precision.append(0)
+            recall.append(0)
+            f1.append(0)
             continue
 
         det = detection[frame]
@@ -81,11 +94,28 @@ def mIoU(detection, gt):
 
             iou_images = np.append(iou_images, max_iou)
 
-        # If length of detections is different than length of ground truth
-        if len(det) != len(annot):
-            iou_images = np.append(iou_images, np.zeros(np.abs(len(annot) - len(det))))
+            # Calculate True Positives, False Positives, and False Negatives
+            if max_iou >= 0.5:  # Consider it a True Positive if IoU is greater than 0.5
+                tp += 1
+            else:
+                fp += 1
+
+        # Any remaining annotations are False Negatives
+        fn += len(annot)
+
+        # Compute precision, recall, and F1 score
+        # We return directly a 0 if the denominator is 0,
+        # it is, if there are no true positives, false positives or false negatives
+        precision.append(tp / (tp + fp) if tp + fp > 0 else 0)
+        recall.append(tp / (tp + fn) if tp + fn > 0 else 0)
+        f1.append(2 * (precision[-1] * recall[-1]) / (precision[-1] + recall[-1]) if precision[-1] + recall[-1] > 0 else 0)
+
+    # Compute the average precision, recall, and F1 score over all frames
+    precision = np.mean(precision)
+    recall = np.mean(recall)
+    f1_score = np.mean(f1)
 
     # Compute mIoU
     mIoU = np.mean(iou_images)
 
-    return mIoU
+    return mIoU, precision, recall, f1_score
