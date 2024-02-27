@@ -4,9 +4,9 @@ from metrics import mIoU
 import optuna
 import json
 
-VIDEO_PATH = "../Data/AICity_data/train/S03/c010/vdo.avi"
+VIDEO_PATH = "./Data/AICity_data/train/S03/c010/vdo.avi"
 
-ANNOTATIONS_PATH = "annotations/annots.json"
+ANNOTATIONS_PATH = "./Week1/annotations/annots.json"
 ANNOTATIONS = json.load(open(ANNOTATIONS_PATH, "r"))
 
 # Best parameters found using Optuna
@@ -24,7 +24,7 @@ def objective(trial):
         kernel_open_size=BEST_PARAMS["kernel_open_size"],
         kernel_close_size=BEST_PARAMS["kernel_close_size"],
         area_threshold=BEST_PARAMS["area_threshold"],
-        rho=trial.suggest_categorical("rho", [0.05, 0.1, 0.2, 0.3, 0.5, 0.6]),
+        rho=trial.suggest_categorical("rho", [0.2, 0.3]),
         median_filter_before=trial.suggest_categorical(
             "median_filter_before", [None, 3, 7, 15]
         ),
@@ -42,7 +42,7 @@ def objective(trial):
 search_space = {
     "median_filter_before": [None, 3, 7, 15],
     "median_filter_after": [None, 3, 7, 15],
-    "rho": [0.05, 0.1, 0.2],
+    "rho": [0.2, 0.3],
     "use_mask": [False, True],
 }
 
@@ -50,6 +50,6 @@ study = optuna.create_study(
     sampler=optuna.samplers.GridSampler(search_space),
     direction="maximize",  # redundand, since grid search
     storage="sqlite:///iou_segmentation_adaptative.db",
-    study_name="1_non_adaptative_part1",
+    study_name="goio_adaptative",
 )
 study.optimize(objective)
