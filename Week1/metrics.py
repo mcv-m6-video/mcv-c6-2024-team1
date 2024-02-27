@@ -55,14 +55,14 @@ def mIoU(detection, gt):
             continue
 
         det = detection[frame]
-        annot = gt[frame]
+        annot = gt[frame].copy()
 
         # For each detection
         for det_obj in det:
             # Get detection box
             det_bbox = det_obj['bbox']
             max_iou = 0
-
+            max_annot = None
             # For each annotation
             for annot_obj in annot:
                 # Get annotation box
@@ -71,7 +71,12 @@ def mIoU(detection, gt):
                 # Compute IoU
                 iou_val = iou(det_bbox, annot_bbox)
                 # We compute the maximum iou for each detection with the ground truth
-                max_iou = max(max_iou, iou_val)
+                # and remove the detection with the highest iou from the list of ground truth
+                if iou_val > max_iou:
+                    max_iou = iou_val
+                    max_annot = annot_obj
+            if max_annot is not None:
+                annot.remove(max_annot)
 
             iou_images = np.append(iou_images, max_iou)
 
