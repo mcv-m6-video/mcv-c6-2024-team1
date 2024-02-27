@@ -114,15 +114,20 @@ def evaluate(detection, gt):
         # it is, if there are no true positives, false positives or false negatives
         precision.append(tp / (tp + fp) if tp + fp > 0 else 0)
         recall.append(tp / (tp + fn) if tp + fn > 0 else 0)
-        f1.append(2 * (precision[-1] * recall[-1]) / (precision[-1] + recall[-1]) if precision[-1] + recall[-1] > 0 else 0)
+        f1.append(
+            2 * (precision[-1] * recall[-1]) / (precision[-1] + recall[-1])
+            if precision[-1] + recall[-1] > 0
+            else 0
+        )
 
     # Compute the average IoU, precision, recall, and F1 score over all frames
     mIoU = np.mean(iou_images)
     precision = np.mean(precision)
     recall = np.mean(recall)
     f1_score = np.mean(f1)
-    
+
     return mIoU, precision, recall, f1_score
+
 
 def AP(annots_boxes, pred_boxes):
     # Initialize variables
@@ -163,7 +168,8 @@ def AP(annots_boxes, pred_boxes):
     ap = np.mean(precision_interp)
     return ap
 
-# Thanks group 5! :)
+
+# Thanks group 5! :)
 def mAP(annots, pred):
     """
     Compute the average precision (AP) of a model for a video
@@ -176,8 +182,8 @@ def mAP(annots, pred):
     for frame in annots.keys():
         annot_bboxes = annots[frame]
         pred_bboxes = pred.get(frame, [])
-        predictions_list.append([bbox['bbox'] for bbox in pred_bboxes])
-        annots_list.append([bbox['bbox'] for bbox in annot_bboxes])
+        predictions_list.append([bbox["bbox"] for bbox in pred_bboxes])
+        annots_list.append([bbox["bbox"] for bbox in annot_bboxes])
 
     aps = []
     for _, (annots_boxes, pred_boxes) in enumerate(zip(annots_list, predictions_list)):

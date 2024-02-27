@@ -1,6 +1,7 @@
+import json
+
 from models import *
 from utils import *
-import json
 
 STORE_VIDEO = False
 VIDEO_PATH = "../Data/AICity_data/train/S03/c010/vdo.avi"
@@ -20,9 +21,11 @@ def task4_1():
         int(gaussian.num_frames * gaussian.train_split) - 1, annots
     )
 
+
 def task4_2():
     gaussian = AdaptativeGaussianColorModel(
-        VIDEO_PATH, color_space=cv2.COLOR_BGR2Lab, reverse_color_space=cv2.COLOR_Lab2BGR)
+        VIDEO_PATH, color_space=cv2.COLOR_BGR2Lab, reverse_color_space=cv2.COLOR_Lab2BGR
+    )
     gaussian.compute_mean_std()
     predictions, frames, bg, det = gaussian.segment(alpha=4)
     json.dump(predictions, open("predictions/predictions_Lab_ad.json", "w"))

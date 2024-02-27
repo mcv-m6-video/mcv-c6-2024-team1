@@ -1,8 +1,10 @@
+import json
+
+import optuna
+
+from metrics import mAP
 from models import *
 from utils import *
-from metrics import mAP
-import optuna
-import json
 
 VIDEO_PATH = "../Data/AICity_data/train/S03/c010/vdo.avi"
 

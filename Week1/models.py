@@ -428,7 +428,12 @@ class AdaptativeGaussianColorModel(GaussianColorModel):
             area_threshold (int): Minimum area to consider as an object.
         """
         super().__init__(
-            video_path, train_split, kernel_open_size, kernel_close_size, area_threshold, color_space
+            video_path,
+            train_split,
+            kernel_open_size,
+            kernel_close_size,
+            area_threshold,
+            color_space,
         )
         self.reverse_color_space = reverse_color_space
         self.rho = rho
@@ -565,7 +570,9 @@ class AdaptativeGaussianColorModel(GaussianColorModel):
             predictions.update({frame_id: prediction})
             frames.append(cv2.cvtColor(postprocessed_foreground, cv2.COLOR_GRAY2RGB))
             background.append(
-                cv2.cvtColor(self.background_mean.astype(np.uint8), self.reverse_color_space)
+                cv2.cvtColor(
+                    self.background_mean.astype(np.uint8), self.reverse_color_space
+                )
             )
             binary.append(binary_colored.astype(np.uint8))
 

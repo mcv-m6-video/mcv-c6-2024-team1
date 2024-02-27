@@ -1,15 +1,17 @@
+import json
+
+import optuna
+
+from metrics import mAP
 from models import *
 from utils import *
-from metrics import mAP
-import optuna
-import json
 
 VIDEO_PATH = "./Data/AICity_data/train/S03/c010/vdo.avi"
 
 ANNOTATIONS_PATH = "./Week1/annotations/annots.json"
 ANNOTATIONS = json.load(open(ANNOTATIONS_PATH, "r"))
 
-# Best parameters found using Optuna
+# Best parameters found using Optuna
 BEST_PARAMS = {
     "kernel_open_size": 3,
     "kernel_close_size": 30,
