@@ -147,12 +147,12 @@ class AdaptativeGaussianModel(GaussianModel):
         video_path: str,
         train_split: float = 0.25,
         kernel_open_size: int = 3,
-        kernel_close_size: int = 31,
-        area_threshold: int = 1500,
-        rho: float = 0.1,
-        median_filter_before: int = 7,
-        median_filter_after: int = 7,
-        use_mask: bool = True,
+        kernel_close_size: int = 30,
+        area_threshold: int = 5000,
+        rho: float = 0.6,
+        median_filter_before: int = 3,
+        median_filter_after: int = 3,
+        use_mask: bool = False,
     ) -> None:
         """
         Initialize the GaussianModel.
