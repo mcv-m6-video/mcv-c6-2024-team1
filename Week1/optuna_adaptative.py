@@ -34,7 +34,7 @@ def objective(trial):
         use_mask=trial.suggest_categorical("use_mask", [False, True]),
     )
     gaussian.compute_mean_std()
-    predictions, _ = gaussian.segment(alpha=BEST_PARAMS["alpha"])
+    predictions, _, _, _ = gaussian.segment(alpha=BEST_PARAMS["alpha"])
 
     mIoU, precision, recall, f1_score = evaluate(predictions, ANNOTATIONS)
     return mIoU + precision + recall + f1_score
