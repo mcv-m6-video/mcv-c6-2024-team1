@@ -10,11 +10,15 @@ annotations = open(ANNOTATIONS_PATH, "r")
 annots = json.load(annotations)
 
 def objective(trial):
-    gaussian = GaussianModel(
+    gaussian = AdaptativeGaussianModel(
         video_path=VIDEO_PATH,
         kernel_open_size=trial.suggest_categorical("kernel_open_size", [3, 5, 10]),
         kernel_close_size=trial.suggest_categorical("kernel_close_size", [3, 5, 10, 20, 30]),
         area_threshold=trial.suggest_categorical("area_threshold", [1000, 2000, 3000, 4000, 5000, 6000])
+        rho=trial.suggest_categorical("rho", [0.05, 0.1, 0.2, 0.3, 0.5, 0.6])
+        median_filter_before=trial.suggest_categorical("median_filter_before", [None, 3, 7, 15])
+        median_filter_after=trial.suggest_categorical("median_filter_after", [None, 3, 7, 15])
+        use_mask=trial.suggest_categorical("use_mask", [False,True])
     )
     gaussian.compute_mean_std()
     predictions, frames = gaussian.segment(alpha=trial.suggest_float("alpha", 2, 11))
@@ -27,12 +31,13 @@ search_space = {
     "kernel_close_size": [3, 5, 10, 20, 30],
     "area_threshold": [1000, 2000, 3000, 4000, 5000, 6000],
     "alpha": [2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+    
 }
 
 study = optuna.create_study(
     sampler=optuna.samplers.GridSampler(search_space),
-    direction="maximize",
+    direction="maximize",  # redundand, since grid search
     storage="sqlite:///iou_segmentation.db",
-    study_name="2",
+    study_name="1",
 )
 study.optimize(objective)
