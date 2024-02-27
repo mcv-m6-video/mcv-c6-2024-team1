@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def iou(box1, box2):
+def IoU(box1, box2):
     """
     Computes Intersection over Union (IoU) of two bounding boxes.
     Parameters:
@@ -86,7 +86,7 @@ def evaluate(detection, gt):
                 annot_bbox = annot_obj["bbox"]
 
                 # Compute IoU
-                iou_val = iou(det_bbox, annot_bbox)
+                iou_val = IoU(det_bbox, annot_bbox)
 
                 # We compute the maximum iou for each detection with the ground truth
                 # and remove the detection with the highest iou from the list of ground truth
@@ -121,5 +121,66 @@ def evaluate(detection, gt):
     precision = np.mean(precision)
     recall = np.mean(recall)
     f1_score = np.mean(f1)
-
+    
     return mIoU, precision, recall, f1_score
+
+def AP(annots_boxes, pred_boxes):
+    # Initialize variables
+    tp = np.zeros(len(pred_boxes))
+    fp = np.zeros(len(pred_boxes))
+    gt_matched = np.zeros(len(annots_boxes))
+
+    # Iterate over the predicted boxes
+    for i, pred_box in enumerate(pred_boxes):
+        ious = [IoU(pred_box, gt_box) for gt_box in annots_boxes]
+        if len(ious) == 0:
+            fp[i] = 1
+            continue
+        max_iou = max(ious)
+        max_iou_idx = ious.index(max_iou)
+
+        if max_iou >= 0.5 and not gt_matched[max_iou_idx]:
+            tp[i] = 1
+            gt_matched[max_iou_idx] = 1
+        else:
+            fp[i] = 1
+
+    tp = np.cumsum(tp)
+    fp = np.cumsum(fp)
+    recall = tp / len(annots_boxes)
+    precision = tp / (tp + fp)
+
+    # Generate graph with the 11-point interpolated precision-recall curve
+    recall_interp = np.linspace(0, 1, 11)
+    precision_interp = np.zeros(11)
+    for i, r in enumerate(recall_interp):
+        array_precision = precision[recall >= r]
+        if len(array_precision) == 0:
+            precision_interp[i] = 0
+        else:
+            precision_interp[i] = max(precision[recall >= r])
+
+    ap = np.mean(precision_interp)
+    return ap
+
+# Thanks group 5! :)
+def mAP(annots, pred):
+    """
+    Compute the average precision (AP) of a model for a video
+    :param annots: ground truth bounding boxes
+    :param pred: predicted bounding boxes
+    :return: list of average precision values
+    """
+    annots_list = []
+    predictions_list = []
+    for frame in annots.keys():
+        annot_bboxes = annots[frame]
+        pred_bboxes = pred.get(frame, [])
+        predictions_list.append([bbox['bbox'] for bbox in pred_bboxes])
+        annots_list.append([bbox['bbox'] for bbox in annot_bboxes])
+
+    aps = []
+    for _, (annots_boxes, pred_boxes) in enumerate(zip(annots_list, predictions_list)):
+        aps.append(AP(annots_boxes, pred_boxes))
+
+    return np.mean(aps)
