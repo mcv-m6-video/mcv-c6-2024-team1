@@ -11,7 +11,7 @@ def task1():
     gaussian = GaussianModel(VIDEO_PATH)
     gaussian.compute_mean_std()
     predictions, frames, det = gaussian.segment(alpha=4)
-    json.dump(predictions, open("predictions/predictions.json", "w"))
+    json.dump(predictions, open("predictions/predictions_default.json", "w"))
     if STORE_VIDEO:
         makeVideo(frames, "video_t1.mp4")
         makeVideo(det, "video_det_t1.mp4")
