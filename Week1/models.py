@@ -176,7 +176,7 @@ class AdaptativeGaussianModel(GaussianModel):
 
         return predictions, frames
 
-class GaussianMixtureModel(GaussianModel):
+class GaussianColorModel(GaussianModel):
     def __init__(
         self,
         video_path: str,
@@ -184,10 +184,12 @@ class GaussianMixtureModel(GaussianModel):
         kernel_open_size: int = 3,
         kernel_close_size: int = 31,
         area_threshold: int = 1500,
+        color_space = cv2.COLOR_BGR2HSV,
     ) -> None:
         super().__init__(
             video_path, train_split, kernel_open_size, kernel_close_size, area_threshold
         )
+        self.color_space = color_space
 
     def segment(self, alpha: float):
         """
@@ -207,7 +209,7 @@ class GaussianMixtureModel(GaussianModel):
             if not ret:
                 break
             frame_id = str(int(self.video.get(cv2.CAP_PROP_POS_FRAMES)) - 1)
-            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+            frame = cv2.cvtColor(frame, self.color_space)
             foreground_channels = np.abs(frame - self.background_mean) >= alpha * (self.background_std + 2)
             foreground = np.any(foreground_channels, axis=2)
             foreground = (foreground * 255).astype(np.uint8)
@@ -237,7 +239,7 @@ class GaussianMixtureModel(GaussianModel):
             ret, frame = self.video.read()
             if not ret:
                 break
-            color_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+            color_frame = cv2.cvtColor(frame, self.color_space)
             frames[i % batch] = color_frame
             if i % batch == batch-1:
                 f_mean = np.mean(frames, axis=0)
