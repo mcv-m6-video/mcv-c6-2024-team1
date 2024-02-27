@@ -263,4 +263,4 @@ class GaussianMixtureModel(GaussianModel):
         #self.background_mean = np.mean(frames, axis=0)
         #self.background_std = np.std(frames, axis=0)
         self.background_mean = cum_mean
-        self.background_std = np.sqrt(cum_var) # TODO: Check this is the same as np.std(frames, axis=0)
+        self.background_std = np.sqrt(cum_var)
