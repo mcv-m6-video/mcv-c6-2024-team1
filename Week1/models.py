@@ -330,6 +330,7 @@ class GaussianColorModel(GaussianModel):
             dict, list: Predictions containing bounding boxes and segmented frames.
         """
         frames = []
+        binary = []
         predictions = {}
         test_frames = int(self.num_frames * (1 - self.train_split))
         for _ in tqdm(range(test_frames), desc="Predicting test frames"):
@@ -344,11 +345,12 @@ class GaussianColorModel(GaussianModel):
             foreground = np.any(foreground_channels, axis=2)
             foreground = (foreground * 255).astype(np.uint8)
             postprocessed_foreground = self.postprocess(foreground)
-            prediction = self.detect_object(postprocessed_foreground)
+            prediction, binary_colored = self.detect_object(postprocessed_foreground)
             predictions.update({frame_id: prediction})
             frames.append(cv2.cvtColor(postprocessed_foreground, cv2.COLOR_GRAY2RGB))
+            binary.append(binary_colored.astype(np.uint8))
 
-        return predictions, frames
+        return predictions, frames, binary
 
     def compute_mean_std(self):
         """
