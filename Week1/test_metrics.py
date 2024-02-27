@@ -18,6 +18,7 @@ SUFFIXES = [
     "2_lab",
     "2_rgb",
     "2_YCrCb",
+    "2_yuv",
 ]
 
 
@@ -53,4 +54,5 @@ if __name__ == "__main__":
     if args.suffix == "all":
         test_all()
     else:
-        test(args.suffix)
+        mIou, mAP_val, precision, recall, f1_score = test(args.suffix)
+        print(f"mIoU: {mIou}, mAP: {mAP_val}, Precision: {precision}, Recall: {recall}, F1 score: {f1_score}")

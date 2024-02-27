@@ -26,7 +26,7 @@ def objective(trial):
         kernel_open_size=BEST_PARAMS["kernel_open_size"],
         kernel_close_size=BEST_PARAMS["kernel_close_size"],
         area_threshold=BEST_PARAMS["area_threshold"],
-        rho=trial.suggest_categorical("rho", [0.2, 0.3]),
+        rho=trial.suggest_categorical("rho", [0.05, 0.1, 0.2, 0.3, 0.5, 0.6]),
         median_filter_before=trial.suggest_categorical(
             "median_filter_before", [None, 3, 7, 15]
         ),
@@ -44,7 +44,7 @@ def objective(trial):
 search_space = {
     "median_filter_before": [None, 3, 7, 15],
     "median_filter_after": [None, 3, 7, 15],
-    "rho": [0.2, 0.3],
+    "rho": [0.05, 0.1, 0.2, 0.3, 0.5, 0.6],
     "use_mask": [False, True],
 }
 
