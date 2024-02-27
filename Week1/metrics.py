@@ -15,25 +15,26 @@ def iou(box1, box2):
     y1 = max(box1[1], box2[1])
     x2 = min(box1[2], box2[2])
     y2 = min(box1[3], box2[3])
-    
+
     # If the intersection rectangle is empty, return 0.0
     if x1 >= x2 or y1 >= y2:
         return 0.0
-    
+
     # Calculate the area of intersection rectangle
     intersection_area = (x2 - x1) * (y2 - y1)
-    
+
     # Calculate the area of both bounding boxes
     box1_area = (box1[2] - box1[0]) * (box1[3] - box1[1])
     box2_area = (box2[2] - box2[0]) * (box2[3] - box2[1])
-    
+
     # Calculate the area of union of the two bounding boxes
     union_area = box1_area + box2_area - intersection_area
-    
+
     # Calculate IoU
     iou = intersection_area / union_area
-    
+
     return iou
+
 
 def mIoU(detection, gt):
     """
@@ -60,13 +61,13 @@ def mIoU(detection, gt):
         # For each detection
         for det_obj in det:
             # Get detection box
-            det_bbox = det_obj['bbox']
+            det_bbox = det_obj["bbox"]
             max_iou = 0
             max_annot = None
             # For each annotation
             for annot_obj in annot:
                 # Get annotation box
-                annot_bbox = annot_obj['bbox']
+                annot_bbox = annot_obj["bbox"]
 
                 # Compute IoU
                 iou_val = iou(det_bbox, annot_bbox)

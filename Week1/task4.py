@@ -15,8 +15,10 @@ def task4():
     if STORE_VIDEO:
         makeVideo(frames, "video_4_Lab.mp4")
     annots = readXMLtoAnnotation(ANNOTATIONS_PATH, remParked=True)
-    annots = removeFirstAnnotations(int(gaussian.num_frames * gaussian.train_split) - 1, annots)
-    json.dump(annots, open("annots_Lab.json", "w")) 
+    annots = removeFirstAnnotations(
+        int(gaussian.num_frames * gaussian.train_split) - 1, annots
+    )
+    json.dump(annots, open("annots_Lab.json", "w"))
 
 
 if __name__ == "__main__":
