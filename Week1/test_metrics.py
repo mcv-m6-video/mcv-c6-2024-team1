@@ -55,4 +55,6 @@ if __name__ == "__main__":
         test_all()
     else:
         mIou, mAP_val, precision, recall, f1_score = test(args.suffix)
-        print(f"mIoU: {mIou}, mAP: {mAP_val}, Precision: {precision}, Recall: {recall}, F1 score: {f1_score}")
+        print(
+            f"mIoU: {mIou}, mAP: {mAP_val}, Precision: {precision}, Recall: {recall}, F1 score: {f1_score}"
+        )
