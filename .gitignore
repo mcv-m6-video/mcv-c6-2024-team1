@@ -5,3 +5,4 @@ Data/**
 **/.DS_Store
 **/video_frames
 **/yolov5s.pt
+.vscode/
