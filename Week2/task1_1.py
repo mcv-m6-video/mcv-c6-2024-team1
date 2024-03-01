@@ -53,10 +53,10 @@ def run_inference(display: bool = False):
     bbxs_clean = clean_bbxs(bbxs, detected_class="car", confidence=0.5)
 
     # Save bounding boxes and clean bounding boxes to JSON files
-    save_json(bbxs, "bbxs.json")
-    save_json(bbxs_clean, "bbxs_clean.json")
+    save_json(bbxs, "results/bbxs.json")
+    save_json(bbxs_clean, "results/bbxs_clean.json")
     converted_bbxs = convert_bbxs_format(bbxs_clean)
-    save_json(converted_bbxs, "bbxs_clean_formatted.json")
+    save_json(converted_bbxs, "results/bbxs_clean_formatted.json")
 
     cap.release()
     cv2.destroyAllWindows()
