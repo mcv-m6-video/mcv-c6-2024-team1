@@ -3,3 +3,4 @@ Data/**
 **/*.mp4
 **/.idea
 **/.DS_Store
+**/video_frames
