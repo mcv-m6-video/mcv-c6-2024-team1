@@ -1,5 +1,6 @@
 import json
 import os
+import xml.etree.ElementTree as ET
 
 import cv2
 from tqdm import tqdm
@@ -85,4 +86,51 @@ def display_video_with_detections(
         current_frame += 1
 
 
-display_video_with_detections(store_video=True)
+def convert_bbxs_format(bbxs: list):
+    frame_data = {}
+    for frame, entry in enumerate(bbxs):
+        for i in entry["xmin"]:
+            bbox = [
+                entry["xmin"][i],
+                entry["ymin"][i],
+                entry["xmax"][i],
+                entry["ymax"][i],
+            ]
+            if str(frame) not in frame_data:
+                frame_data[str(frame)] = []
+
+            frame_data[str(frame)].append({"bbox": bbox})
+
+    return frame_data
+
+
+def readXMLtoAnnotation(annotationFile, remParked=False):
+    # Read XML
+    file = ET.parse(annotationFile)
+    root = file.getroot()
+    annotations = {}
+
+    # Find objects
+    for child in root:
+        if child.tag == "track":
+            # Get class
+            className = child.attrib["label"]
+            for obj in child:
+                if className == "car":
+                    objParked = obj[0].text
+                    # Do not store if it is parked and we want to remove parked objects
+                    if objParked == "true" and remParked:
+                        continue
+
+                frame = obj.attrib["frame"]
+                xtl = float(obj.attrib["xtl"])
+                ytl = float(obj.attrib["ytl"])
+                xbr = float(obj.attrib["xbr"])
+                ybr = float(obj.attrib["ybr"])
+                bbox = [xtl, ytl, xbr, ybr]
+                if frame in annotations:
+                    annotations[frame].append({"name": className, "bbox": bbox})
+                else:
+                    annotations[frame] = [{"name": className, "bbox": bbox}]
+
+    return annotations

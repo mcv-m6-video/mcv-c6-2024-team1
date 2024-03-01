@@ -1,7 +1,7 @@
 import cv2
 import torch
 
-from week_utils import clean_bbxs, save_json
+from week_utils import *
 
 REPO_DIR = "ultralytics/yolov5"
 MODEL_NAME = "yolov5s"
@@ -55,6 +55,8 @@ def run_inference(display: bool = False):
     # Save bounding boxes and clean bounding boxes to JSON files
     save_json(bbxs, "bbxs.json")
     save_json(bbxs_clean, "bbxs_clean.json")
+    converted_bbxs = convert_bbxs_format(bbxs_clean)
+    save_json(converted_bbxs, "bbxs_clean_formatted.json")
 
     cap.release()
     cv2.destroyAllWindows()
