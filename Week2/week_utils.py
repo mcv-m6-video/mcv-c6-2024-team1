@@ -33,6 +33,56 @@ def clean_bbxs(bbxs: list, detected_class: str, confidence: float = 0.5):
     return bbxs_clean
 
 
+def load_json(name: str):
+    with open(name, "r") as f:
+        return json.load(f)
+
+
 def save_json(file: dict, name: str):
     with open(name, "w") as f:
         json.dump(file, f)
+
+
+def display_video_with_detections(
+    video_path: str = DEFAULT_VIDEO_PATH, store_video: bool = False
+):
+    current_frame = 0
+    bbxs = load_json("bbxs_clean.json")
+    cap = cv2.VideoCapture(video_path)
+
+    if store_video:
+        frame_width = int(cap.get(3))
+        frame_height = int(cap.get(4))
+        out = cv2.VideoWriter(
+            "output_video.mp4",
+            cv2.VideoWriter_fourcc(*"MP4V"),
+            30,
+            (frame_width, frame_height),
+        )
+
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            break
+
+        current_bbx = bbxs[current_frame]
+        names = current_bbx["name"]
+        for key in names:
+            xmin = int(current_bbx["xmin"][key])
+            ymin = int(current_bbx["ymin"][key])
+            xmax = int(current_bbx["xmax"][key])
+            ymax = int(current_bbx["ymax"][key])
+            cv2.rectangle(frame, (xmin, ymin), (xmax, ymax), (0, 255, 0), 2)
+
+        cv2.imshow("Frame", frame)
+        if store_video:
+            out.write(frame)
+
+        # Break the loop when 'q' is pressed
+        if cv2.waitKey(1) & 0xFF == ord("q"):
+            break
+
+        current_frame += 1
+
+
+display_video_with_detections(store_video=True)
