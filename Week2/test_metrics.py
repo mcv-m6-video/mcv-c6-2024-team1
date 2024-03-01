@@ -1,10 +1,8 @@
 import json
 
 from metrics import evaluate, mAP
-from week_utils import *
+from week_utils import readXMLtoAnnotation
 
-STORE_VIDEO = True
-VIDEO_PATH = "../Data/AICity_data_S03_C010/AICity_data/train/S03/c010/vdo.avi"
 ANNOTATIONS_PATH = (
     "../Data/AICity_data_S03_C010/ai_challenge_s03_c010-full_annotation.xml"
 )
