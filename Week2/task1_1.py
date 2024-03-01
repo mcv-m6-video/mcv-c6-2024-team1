@@ -55,7 +55,7 @@ def run_inference(display: bool = False):
     # Save bounding boxes and clean bounding boxes to JSON files
     save_json(bbxs, "results/bbxs.json")
     save_json(bbxs_clean, "results/bbxs_clean.json")
-    converted_bbxs = convert_bbxs_format(bbxs_clean)
+    converted_bbxs = convert_bbxs_to_annots_format(bbxs_clean)
     save_json(converted_bbxs, "results/bbxs_clean_formatted.json")
 
     cap.release()

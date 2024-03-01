@@ -86,7 +86,7 @@ def display_video_with_detections(
         current_frame += 1
 
 
-def convert_bbxs_format(bbxs: list):
+def convert_bbxs_to_annots_format(bbxs: list):
     frame_data = {}
     for frame, entry in enumerate(bbxs):
         for i in entry["xmin"]:
