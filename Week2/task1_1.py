@@ -1,58 +1,63 @@
-from detectron2.utils.logger import setup_logger
+import cv2
+import torch
 
-setup_logger()
+from week_utils import clean_bbxs, save_json
 
-import os, cv2
-from detectron2 import model_zoo
-from detectron2.engine import DefaultPredictor
-from detectron2.config import get_cfg
-from tqdm import tqdm
+REPO_DIR = "ultralytics/yolov5"
+MODEL_NAME = "yolov5s"
+VIDEO_PATH = "../Data/AICity_data_S03_C010/AICity_data/train/S03/c010/vdo.avi"
 
-MODEL = "COCO-Detection/faster_rcnn_R_50_FPN_3x.yaml"
-INPUT_DIR = "/ghome/group01/MCV-C6/video_frames"
-OUTPUT_DIR = "./m6-experiments"
-DATASET_NAME = "m6-aicity"
-VIDEO_PATH = 'vdo.avi'
 
-def run_inference():
-    experiment_name = f"{DATASET_NAME}_{MODEL[15:-5]}"
-    output_dir = os.path.join(OUTPUT_DIR, experiment_name)
-    os.makedirs(output_dir, exist_ok=True)
+def run_inference(display: bool = False):
+    # Load YOLOv5s model
+    model = torch.hub.load(REPO_DIR, MODEL_NAME, pretrained=True)
 
-    cfg = get_cfg()
-    cfg.merge_from_file(model_zoo.get_config_file(MODEL))
-    cfg.OUTPUT_DIR = output_dir
-    cfg.DATASETS.TRAIN = (DATASET_NAME,)
-    cfg.DATALOADER.NUM_WORKERS = 4
-    cfg.MODEL.WEIGHTS = model_zoo.get_checkpoint_url(MODEL)
-    cfg.SOLVER.IMS_PER_BATCH = 1
-    cfg.MODEL.ROI_HEADS.NUM_CLASSES = 2
+    # Open video file
+    cap = cv2.VideoCapture(VIDEO_PATH)
 
-    print("Evaluating...")
-    cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.5  # set a custom testing threshold
-    predictor = DefaultPredictor(cfg)
+    # Check if video file opened successfully
+    if not cap.isOpened():
+        print("Error opening video file")
 
-    with open(experiment_name + ".txt", "w") as fp:
-        cap = cv2.VideoCapture(VIDEO_PATH)
-        num_frames = cap.get(cv2.CAP_PROP_FRAME_COUNT)
-        for _ in tqdm(range(int(num_frames))):
-            frame_num, im = cap.read()
-            print(f"Processing frame {frame_num}")
-            if im is None:
-                print("Error reading image")
-                continue
-            out = predictor(im)
-            inst = out["instances"]
-            inst = inst[inst.pred_classes == 2]
-            print(inst)
-            for bbox, conf in zip(inst.pred_boxes, inst.scores):
-                bbox = bbox.to("cpu").numpy()
-                conf = conf.to("cpu").numpy()
-                x1, y1, x2, y2 = bbox
-                #   'frame', 'id', 'bb_left', 'bb_top', 'bb_width', 'bb_height', 'conf', 'x', 'y', 'z'
-                line = f"{frame_num}, -1, {x1}, {y1}, {x2-x1}, {y2-y1}, {conf}, -1, -1, -1\n"
-                fp.write(line)
-    print("Done")
+    # Create empty list for bounding boxes
+    bbxs = []
+
+    # Loop through each frame of the video
+    while cap.isOpened():
+        # Read frame from video
+        ret, frame = cap.read()
+
+        # Check if frame was successfully read
+        if not ret:
+            print("Error reading frame")
+            break
+
+        # Convert frame from BGR to RGB
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+        # Inference with YOLOv5
+        results = model([frame])
+        results.render()
+
+        # Add bounding boxes to list
+        bbxs.append(results.pandas().xyxy[0].to_dict())
+
+        if display:
+            # Display the frame
+            cv2.imshow("Frame", results.ims[0])
+
+            # Check if user pressed the 'q' key to quit
+            if cv2.waitKey(1) & 0xFF == ord("q"):
+                break
+
+    bbxs_clean = clean_bbxs(bbxs, detected_class="car", confidence=0.5)
+
+    # Save bounding boxes and clean bounding boxes to JSON files
+    save_json(bbxs, "bbxs.json")
+    save_json(bbxs_clean, "bbxs_clean.json")
+
+    cap.release()
+    cv2.destroyAllWindows()
 
 
 if __name__ == "__main__":
