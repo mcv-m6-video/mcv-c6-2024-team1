@@ -58,9 +58,9 @@ def visualize_tracking():
         for k in bbxs[i]['track']:
             tl = (round(bbxs[i]['xmin'][k]), round(bbxs[i]['ymin'][k]))
             br = (round(bbxs[i]['xmax'][k]), round(bbxs[i]['ymax'][k]))
-            img_draw = cv2.rectangle(img_draw, (tl), (br), colors_table[int(k)], 2)
+            img_draw = cv2.rectangle(img_draw, (tl), (br), colors_table[bbxs[i]['track'][k]], 2)
             img_draw = cv2.putText(
-                img_draw, k, (tl), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 0, 0), 2)
+                img_draw, str(bbxs[i]['track'][k]), (tl), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 0, 0), 2)
             # Draw circles for previous detections
             # for detection in track.detections:
             #    detection_center = ( int((detection[0]+detection[2])/2), int((detection[1]+detection[3])/2) )
