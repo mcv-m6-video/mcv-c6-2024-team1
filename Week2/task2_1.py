@@ -1,13 +1,10 @@
-import cv2
-import torch
+import json
 
 from week_utils import *
 
-TEST_FOLDER = 'test'
-
-REPO_DIR = "ultralytics/yolov5"
-MODEL_NAME = "yolov5s"
-VIDEO_PATH = "../Data/AICity_data/train/S03/c010/vdo.avi"
+RESULTS_PATH = './results/'
+FILE_IN = 'bbxs_clean.json'
+FILE_OUT = 'bbxs_clean_tracked.json'
 
 
 def cal_IoU(prev_tl, prev_br, new_tl, new_br):
@@ -35,97 +32,75 @@ def cal_IoU(prev_tl, prev_br, new_tl, new_br):
     return iou
 
 
-def main(iou_thr = 0.5, display=False):
+def track_max_overlap(file_in, file_out, iou_thr=0.4):
     """
-    Object tracking by overlap
+    Object tracking by maximum overlap
     """
-    # Load YOLOv5s model
-    model = torch.hub.load(REPO_DIR, MODEL_NAME, pretrained=True)
-    device = torch.device('cuda') if torch.cuda.is_available(
-    ) else torch.device('cpu')
-    model.to(device)
-    model.eval()
+    with open(file_in, 'r') as f:
+        data = json.load(f)
 
-    # Open video file
-    cap = cv2.VideoCapture(VIDEO_PATH)
+    bbxs = data
+    f.close()
 
-    # Check if video file opened successfully
-    if not cap.isOpened():
-        print("Error opening video file")
+    # Iterate over each dictionary in the list
+    for i in range(len(bbxs)):
+        print(f'\nFrame {i}')
 
-    prev_bbxs = {}
+        track_ids = {}
 
-    # Loop through each frame of the video
-    while cap.isOpened():
-        # Create empty list for bounding boxes
-        bbxs = []
+        # Assign a different track to each object on the scene for first frame
+        if i == 0:
+            for k in bbxs[i]['xmin']:
+                track_ids[k] = int(k)
 
-        # Read frame from video
-        ret, frame = cap.read()
-
-        # Check if frame was successfully read
-        if not ret:
-            print("Error reading frame")
-            break
-
-        # Convert frame from BGR to RGB
-        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-
-        # Inference with YOLOv5
-        results = model([frame])
-        results.render()
-
-        # Add bounding boxes to list
-        # bbxs.append(results.pandas().xyxy[0].to_dict())
-
-        if display:
-            # Display the frame
-            cv2.imshow("Frame", results.ims[0])
-
-            # Check if user pressed the 'q' key to quit
-            if cv2.waitKey(1) & 0xFF == ord("q"):
-                break
-
-        # Obtain car bbxs
-        bbxs_car = clean_bbxs(
-            [results.pandas().xyxy[0].to_dict()], detected_class="car", confidence=0.5)[0]
-
-        if not bool(prev_bbxs):
-            prev_bbxs = bbxs_car
         else:
-            max_iou = 0
-            max_idx = 0
+            # Iterate over each bbx
+            for k in bbxs[i]['xmin']:
+                max_iou = -1
+                max_idx = -1
 
-            for k in prev_bbxs['xmin']:
-                prev_tl = (prev_bbxs['xmin'][k], prev_bbxs['ymin'][k])
-                prev_br = (prev_bbxs['xmax'][k], prev_bbxs['ymax'][k])
-                for j in bbxs_car['xmin']:
-                    new_tl = (bbxs_car['xmin'][j], bbxs_car['ymin'][k])
-                    new_br = (bbxs_car['xmax'][j], bbxs_car['ymax'][k])
+                new_tl = (bbxs[i]['xmin'][k], bbxs[i]['ymin'][k])
+                new_br = (bbxs[i]['xmax'][k], bbxs[i]['ymax'][k])
 
-                    # Calculate IoU
-                    iou = cal_IoU(prev_tl, prev_br, new_tl, new_br)
+                # Iterate over each prev bbx
+                for j in bbxs[i-1]['xmin']:
+                    # Check if both bbxs are same class
+                    if bbxs[i]['class'][k] == bbxs[i-1]['class'][j]:
+                        prev_tl = (bbxs[i-1]['xmin'][j], bbxs[i-1]['ymin'][j])
+                        prev_br = (bbxs[i-1]['xmax'][j], bbxs[i-1]['ymax'][j])
+                        # print(f'Prev bbx: {prev_tl}, {prev_br}')
+                        # print(f'New bbx: {new_tl}, {new_br}')
 
-                    if iou > max_iou and iou > iou_thr:
-                        max_iou = iou
-                        max_idx = j
+                        # Calculate IoU
+                        iou = cal_IoU(prev_tl, prev_br, new_tl, new_br)
+                        # print(f"IoU of track {j}: {iou}")
 
+                        if iou > max_iou and iou > iou_thr:
+                            max_iou = iou
+                            max_idx = j
+                            # print(f'max_iou {max_idx}: {max_iou}')
+
+                # TODO(?): comprobar si el track ja s'ha posat a una altra bbx
                 # Check if any bbx passed though the iou thershold
-                if max_iou == 0:
-                    # Remove bbx with no new bbx
-                    for i in prev_bbxs:
-                        prev_bbxs[i].pop(k)
+                if max_iou == -1:
+                    # New track id
+                    track_ids[k] = max(bbxs[i-1]['track'].values()) + 1
+                    # print(f'New track: {track_ids[k]}')
                 else:
-                    # Populate prev_bbxs
-                    prev_bbxs['xmin'][k] = bbxs_car['xmin'][max_idx]
-                    prev_bbxs['ymin'][k] = bbxs_car['ymin'][max_idx]
-                    prev_bbxs['xmax'][k] = bbxs_car['xmax'][max_idx]
-                    prev_bbxs['ymax'][k] = bbxs_car['ymax'][max_idx]
+                    # Put track id of bbx with max iou
+                    track_ids[k] = bbxs[i-1]['track'][max_idx]
+                    # print(f'Track followed: {track_ids[k]} with iou {max_iou}')
 
-                    # Remove selected bbx
-                    for i in bbxs_car:
-                        bbxs_car[i].pop(max_idx)
+        bbxs[i]['track'] = track_ids
+        # print(f'track_ids: {track_ids}')
+        print(f"bbxs[i]['track']: {bbxs[i]['track']}")
+        # print(f"bbxs[i]['track']: {bbxs[i]}")
+        # if i == 3:
+        #    break
 
+    save_json(bbxs, file_out)
+
+# TODO: visualization of tracking
 
 if __name__ == "__main__":
-    main()
+    track_max_overlap(RESULTS_PATH + FILE_IN, RESULTS_PATH + FILE_OUT)
