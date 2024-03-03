@@ -7,7 +7,9 @@ import numpy as np
 
 VIDEO_PATH = '../Data/AICity_data/train/S03/c010/vdo.avi'
 ANNOTATIONS_PATH = './results/bbxs_clean_tracked.json'
-SAVE = False
+VIDEO_OUT_PATH = './results/tracking_vdo.avi'
+SAVE = True
+VISUALIZE = True
 
 
 def generate_rainbow_cv2_colors(num_colors):
@@ -30,19 +32,39 @@ def generate_rainbow_cv2_colors(num_colors):
     return colors_bgr
 
 
-def visualize_tracking():
+def visualize_tracking(video_path, annotations_path, video_out_path, save_video=True, visualize=True):
     # Open video file
-    cap = cv2.VideoCapture(VIDEO_PATH)
+    cap = cv2.VideoCapture(video_path)
 
     # Check if video file opened successfully
     if not cap.isOpened():
         print("Error opening video file")
+        raise
 
-    with open(ANNOTATIONS_PATH, 'r') as f:
+    with open(annotations_path, 'r') as f:
         bbxs = json.load(f)
 
+    if save_video:
+        output_video_filename = video_out_path
+        codec = cv2.VideoWriter_fourcc(*'XVID')  # Codec for AVI format
+        fps = cap.get(cv2.CAP_PROP_FPS)  # Frames per second
+        frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+
+        out = cv2.VideoWriter(output_video_filename, codec,
+                              fps, (frame_width, frame_height))
+
+    if cap.get(cv2.CAP_PROP_FRAME_COUNT) != len(bbxs):
+        print('Num of frames in video != num of frames in annotations')
+        raise
+
+    max_track = 0
+    for bbx in bbxs:
+        max_track_now = max(bbx['track'].values())
+        max_track = max(max_track_now, max_track)
+
     i = 0
-    colors_table = generate_rainbow_cv2_colors(20)
+    colors_table = generate_rainbow_cv2_colors(max_track + 1)
 
     # Loop through each frame of the video
     while cap.isOpened():
@@ -51,37 +73,48 @@ def visualize_tracking():
 
         # Check if frame was successfully read
         if not ret:
-            print("Error reading frame")
+            if i + 1 != len(bbxs):
+                print(f'')
+                print("Error reading frame")
             break
 
         img_draw = frame.copy()
         for k in bbxs[i]['track']:
             tl = (round(bbxs[i]['xmin'][k]), round(bbxs[i]['ymin'][k]))
             br = (round(bbxs[i]['xmax'][k]), round(bbxs[i]['ymax'][k]))
-            img_draw = cv2.rectangle(img_draw, (tl), (br), colors_table[bbxs[i]['track'][k]], 2)
+            img_draw = cv2.rectangle(
+                img_draw, (tl), (br), colors_table[bbxs[i]['track'][k]], 2)
             img_draw = cv2.putText(
                 img_draw, str(bbxs[i]['track'][k]), (tl), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 0, 0), 2)
             # Draw circles for previous detections
-            # for detection in track.detections:
-            #    detection_center = ( int((detection[0]+detection[2])/2), int((detection[1]+detection[3])/2) )
-            #    img_draw = cv2.circle(img_draw, detection_center, 5, track.visualization_color, -1)
+            if i != 0:
+                prev_bbxs_id = ""
+                for j in bbxs[i-1]['track']:
+                    if bbxs[i-1]['track'][j] == bbxs[i]['track'][k]:
+                        prev_bbxs_id = j
+                if prev_bbxs_id != "":
+                    detection_center = (int((bbxs[i-1]['xmin'][prev_bbxs_id] + bbxs[i-1]['xmax'][prev_bbxs_id]) / 2),
+                                        int((bbxs[i-1]['ymin'][prev_bbxs_id] + bbxs[i-1]['ymax'][prev_bbxs_id]) / 2))
+                    img_draw = cv2.circle(img_draw, detection_center, 5, colors_table[bbxs[i]['track'][k]], -1)
 
-        cv2.imshow('Tracking results', cv2.resize(
-            img_draw, (int(img_draw.shape[1]*0.5), int(img_draw.shape[0]*0.5))))
-        k = cv2.waitKey(1)
-        if k == ord('q'):
-            return
+        if visualize:
+            print(f'Frame {i + 1}/{len(bbxs)}')
+            cv2.imshow('Tracking results', cv2.resize(
+                img_draw, (int(img_draw.shape[1]*0.5), int(img_draw.shape[0]*0.5))))
+            k = cv2.waitKey(1)
+            if k == ord('q'):
+                return
 
-        if SAVE:
-            # TODO: save video of tracking
-            track_exp_name = f"tracking_bbxs_clean"
-            #path_to_res_folder = os.path.join('./results', track_exp_name)
-            #os.makedirs(path_to_res_folder, exist_ok=True)
-            #cv2.imwrite(path_to_res_folder + '/image_' + str(i).zfill(4) + '.jpg',
-            #            cv2.resize(img_draw, tuple(np.int0(0.5*np.array(img_draw.shape[:2][::-1])))))
+        if save_video:
+            out.write(img_draw)
 
         i += 1
 
+    if save_video:
+        out.release()
+        print(f'Video saved at {video_out_path}')
+
 
 if __name__ == "__main__":
-    visualize_tracking()
+    visualize_tracking(VIDEO_PATH, ANNOTATIONS_PATH,
+                       VIDEO_OUT_PATH, SAVE, VISUALIZE)
