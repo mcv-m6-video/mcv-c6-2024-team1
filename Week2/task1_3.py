@@ -6,8 +6,9 @@ from tqdm import tqdm
 
 from datasets import create_dataloaders
 from metrics import mAP
-from task1_4 import *
-from week_utils import convertAnnotations, readXMLtoAnnotation, split_video
+from week_utils import (convertAnnotations, readXMLtoAnnotation,
+                        split_strategy_A, split_strategy_B, split_strategy_C,
+                        split_video)
 
 NUM_EPOCHS = 1
 LEARNING_RATE = 0.005
@@ -95,10 +96,8 @@ def run_finetuning(device="cpu", strategy="A", fold_idx=0):
     n_frames = len(frames)
     if strategy == "A":
         train_idxs, test_idxs = split_strategy_A(n_frames)
-    elif strategy == "B":
-        train_idxs, test_idxs = split_strategy_B(
-            fold_idx, n_frames
-        )  # Fold 0 is the same as Strategy A
+    elif strategy == "B":  # Fold 0 is the same as Strategy A
+        train_idxs, test_idxs = split_strategy_B(fold_idx, n_frames)
     else:
         train_idxs, test_idxs = split_strategy_C(n_frames)
 

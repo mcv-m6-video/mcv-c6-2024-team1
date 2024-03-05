@@ -3,7 +3,7 @@ import os
 import xml.etree.ElementTree as ET
 
 import cv2
-import torch.distributed as dist
+import numpy as np
 from tqdm import tqdm
 
 DEFAULT_VIDEO_PATH = "../Data/AICity_data_S03_C010/AICity_data/train/S03/c010/vdo.avi"
@@ -146,3 +146,31 @@ def convertAnnotations(annotations):
             bbxs.append(obj["bbox"])
         new_annotations[int(frame)] = bbxs
     return new_annotations
+
+
+def split_strategy_A(number_of_frames):
+    FRAME_25_PERCENT = int(number_of_frames / 4)
+    train_idxs = np.arange(0, FRAME_25_PERCENT)
+    test_idxs = np.arange(FRAME_25_PERCENT, number_of_frames)
+    return train_idxs, test_idxs
+
+
+def split_strategy_B(fold_idx, number_of_frames):
+    # Assuming 4 folds
+    fold_size = number_of_frames / 4
+    train_idxs = []
+    test_idxs = []
+    for i in range(4):
+        start, end = int(i * fold_size), int((i + 1) * fold_size)
+        if i == fold_idx:
+            test_idxs.extend(range(start, end))
+        else:
+            train_idxs.extend(range(start, end))
+    return train_idxs, test_idxs
+
+
+def split_strategy_C(number_of_frames):
+    train_size = int(0.25 * number_of_frames)
+    train_idxs = np.random.choice(number_of_frames, train_size, replace=False)
+    test_idxs = np.setdiff1d(np.arange(number_of_frames), train_idxs)
+    return train_idxs, test_idxs
