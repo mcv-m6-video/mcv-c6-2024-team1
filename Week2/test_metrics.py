@@ -9,7 +9,7 @@ ANNOTATIONS_PATH = (
 
 
 def test():
-    predictions = json.load(open(f"results/bbxs_clean_formatted.json", "r"))
+    predictions = json.load(open(f"results/bbxs_detectron_faster_rcnn_R_50_FPN_3x.json", "r"))
     annots = readXMLtoAnnotation(ANNOTATIONS_PATH, remParked=False)
 
     mIoU, precision, recall, f1_score = evaluate(predictions, annots)
