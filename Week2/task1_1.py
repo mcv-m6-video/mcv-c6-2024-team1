@@ -12,6 +12,7 @@ from detectron2.engine import DefaultPredictor
 from tqdm import tqdm
 
 from week_utils import save_json
+from argparse import ArgumentParser
 
 CAR_LABEL = 2
 DEFAULT_MODEL = "COCO-Detection/faster_rcnn_R_50_FPN_3x.yaml"
@@ -81,4 +82,12 @@ def run_inference(display: bool = False, model=None, name_model=None):
 
 
 if __name__ == "__main__":
-    run_inference()
+    parser = ArgumentParser()
+    parser.add_argument(
+        "--display",
+        action="store_true",
+        help="Display video with detections",
+        default=False,
+    )
+    args = parser.parse_args()
+    run_inference(display=args.display)
