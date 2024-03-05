@@ -70,4 +70,7 @@ The `strategy` and `fold-index` flags are used for deciding which strategy to us
 [![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/colored.png)](#requirements)
 
 ## ➤ Requirements
-
+Install the requirements with the following command:
+```python
+pip install -r Week2/requirements.txt
+```
