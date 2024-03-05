@@ -17,6 +17,7 @@ from __future__ import print_function
 import os
 import numpy as np
 import matplotlib
+import random 
 
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
@@ -117,6 +118,8 @@ class KalmanBoxTracker(object):
         self.time_since_update = 0
         self.id = KalmanBoxTracker.count
         KalmanBoxTracker.count += 1
+        self.visualization_color = (int(random.random() * 256), int(random.random() * 256), int(random.random() * 256))
+
         self.history = []
         self.hits = 0
         self.hit_streak = 0
@@ -144,6 +147,7 @@ class KalmanBoxTracker(object):
             self.hit_streak = 0
         self.time_since_update += 1
         self.history.append(convert_x_to_bbox(self.kf.x))
+
         return self.history[-1]
 
     def get_state(self):
@@ -250,6 +254,7 @@ class Sort(object):
                 self.trackers.pop(i)
         if (len(ret) > 0):
             return np.concatenate(ret)
+        
         return np.empty((0, 5))
 
 
