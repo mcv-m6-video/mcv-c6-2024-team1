@@ -1,65 +1,78 @@
-import cv2
-import torch
-#import ssl
-#ssl._create_default_https_context = ssl._create_unverified_context
-from week_utils import *
+# Setup detectron2 logger
+from detectron2.utils.logger import setup_logger
 
-REPO_DIR = "ultralytics/yolov5"
-MODEL_NAME = "yolov5s"
+setup_logger()
+
+import sys
+
+import cv2
+from detectron2 import model_zoo
+from detectron2.config import get_cfg
+from detectron2.engine import DefaultPredictor
+from tqdm import tqdm
+from week_utils import save_json
+
+DEFAULT_MODEL = "COCO-Detection/faster_rcnn_R_50_FPN_3x.yaml"
+DEFAULT_MODEL_NAME = "faster_rcnn_R_50_FPN_3x"
 VIDEO_PATH = "../Data/AICity_data_S03_C010/AICity_data/train/S03/c010/vdo.avi"
 
 
-def run_inference(display: bool = False, model = None, name_model = None):
-    # Load YOLOv5s model or a given one (useful to test fine tuned model)
+def run_inference(display: bool = False, model=None, name_model=None):
     if not model:
-        model = torch.hub.load(REPO_DIR, MODEL_NAME, pretrained=True)
-        name_model = MODEL_NAME
+        model = DEFAULT_MODEL
+        name_model = DEFAULT_MODEL_NAME
 
-    # Open video file
     cap = cv2.VideoCapture(VIDEO_PATH)
 
-    # Check if video file opened successfully
     if not cap.isOpened():
         print("Error opening video file")
 
-    # Create empty list for bounding boxes
-    bbxs = []
+    bbxs = {}
+    frame_num = 0
+    frame_count = cap.get(cv2.CAP_PROP_FRAME_COUNT)
 
-    # Loop through each frame of the video
-    while cap.isOpened():
-        # Read frame from video
-        ret, frame = cap.read()
+    cfg = get_cfg()
+    cfg.merge_from_file(model_zoo.get_config_file(model))
+    cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.7  # set threshold for this model
+    cfg.MODEL.WEIGHTS = model_zoo.get_checkpoint_url(model)
+    cfg.MODEL.DEVICE = "cpu"
+    predictor = DefaultPredictor(cfg)
 
-        # Check if frame was successfully read
-        if not ret:
-            print("Error reading frame")
-            break
+    with tqdm(total=frame_count, file=sys.stdout) as pbar:
+        while cap.isOpened():
+            ret, frame = cap.read()
 
-        # Convert frame from BGR to RGB
-        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-
-        # Inference with YOLOv5
-        results = model([frame])
-        results.render()
-
-        # Add bounding boxes to list
-        bbxs.append(results.pandas().xyxy[0].to_dict())
-
-        if display:
-            # Display the frame
-            cv2.imshow("Frame", results.ims[0])
-
-            # Check if user pressed the 'q' key to quit
-            if cv2.waitKey(1) & 0xFF == ord("q"):
+            if not ret:
+                print("Error reading frame")
                 break
 
-    bbxs_clean = clean_bbxs(bbxs, detected_class="car", confidence=0.5)
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            outputs = predictor(frame)
 
-    # Save bounding boxes and clean bounding boxes to JSON files
-    save_json(bbxs, f'results/{name_model}_bbxs.json')
-    save_json(bbxs_clean, f'results/{name_model}_bbxs_clean.json')
-    converted_bbxs = convert_bbxs_to_annots_format(bbxs_clean)
-    save_json(converted_bbxs, f'results/{name_model}_bbxs_clean_formatted.json')
+            for i, bbox in enumerate(outputs["instances"].pred_boxes):
+                x_min, y_min, x_max, y_max = bbox.int().cpu().numpy()
+
+                if outputs["instances"].pred_classes[i] == 2:
+                    if frame_num not in bbxs:
+                        bbxs[frame_num] = []
+
+                    bbxs[frame_num].append(
+                        {"bbox": [int(x_min), int(y_min), int(x_max), int(y_max)]}
+                    )
+
+                    if display:
+                        cv2.rectangle(
+                            frame, (x_min, y_min), (x_max, y_max), (0, 0, 255), 5
+                        )
+                        cv2.imshow("Frame", frame)
+
+                if cv2.waitKey(1) & 0xFF == ord("q"):
+                    break
+
+            frame_num += 1
+            pbar.update(1)
+
+    save_json(bbxs, f"results/bbxs_detectron_{name_model}.json")
 
     cap.release()
     cv2.destroyAllWindows()
