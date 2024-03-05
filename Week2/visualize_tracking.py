@@ -53,7 +53,7 @@ def visualize_tracking(video_path, annotations_path, video_out_path, save_video=
             frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
             out = cv2.VideoWriter(output_video_filename, codec,
-                                fps, (frame_width, frame_height))
+                                  fps, (frame_width, frame_height))
 
         if cap.get(cv2.CAP_PROP_FRAME_COUNT) != len(bbxs):
             print('Num of frames in video != num of frames in annotations')
@@ -67,6 +67,7 @@ def visualize_tracking(video_path, annotations_path, video_out_path, save_video=
         i = 0
         colors_table = generate_rainbow_cv2_colors(max_track + 1)
         random.shuffle(colors_table)
+        all_detections = {}
 
         # Loop through each frame of the video
         while cap.isOpened():
@@ -87,16 +88,17 @@ def visualize_tracking(video_path, annotations_path, video_out_path, save_video=
                     img_draw, (tl), (br), colors_table[bbxs[i]['track'][k]], 2)
                 img_draw = cv2.putText(
                     img_draw, str(bbxs[i]['track'][k]), (tl), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 0, 0), 2)
+
                 # Draw circles for previous detections
-                if i != 0:
-                    prev_bbxs_id = ""
-                    for j in bbxs[i-1]['track']:
-                        if bbxs[i-1]['track'][j] == bbxs[i]['track'][k]:
-                            prev_bbxs_id = j
-                    if prev_bbxs_id != "":
-                        detection_center = (int((bbxs[i-1]['xmin'][prev_bbxs_id] + bbxs[i-1]['xmax'][prev_bbxs_id]) / 2),
-                                            int((bbxs[i-1]['ymin'][prev_bbxs_id] + bbxs[i-1]['ymax'][prev_bbxs_id]) / 2))
-                        img_draw = cv2.circle(img_draw, detection_center, 5, colors_table[bbxs[i]['track'][k]], -1)
+                if bbxs[i]['track'][k] in all_detections:
+                    for center in all_detections[bbxs[i]['track'][k]]:
+                        img_draw = cv2.circle(
+                            img_draw, center, 5, colors_table[bbxs[i]['track'][k]], -1)
+                else:
+                    all_detections[bbxs[i]['track'][k]] = []
+
+                all_detections[bbxs[i]['track'][k]].append((int((bbxs[i]['xmin'][k] + bbxs[i]['xmax'][k]) / 2),
+                                                            int((bbxs[i]['ymin'][k] + bbxs[i]['ymax'][k]) / 2)))
 
             if visualize:
                 cv2.imshow('Tracking results', cv2.resize(
