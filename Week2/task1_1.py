@@ -12,6 +12,7 @@ from detectron2.engine import DefaultPredictor
 from tqdm import tqdm
 from week_utils import save_json
 
+CAR_LABEL = 2
 DEFAULT_MODEL = "COCO-Detection/faster_rcnn_R_50_FPN_3x.yaml"
 DEFAULT_MODEL_NAME = "faster_rcnn_R_50_FPN_3x"
 VIDEO_PATH = "../Data/AICity_data_S03_C010/AICity_data/train/S03/c010/vdo.avi"
@@ -52,7 +53,7 @@ def run_inference(display: bool = False, model=None, name_model=None):
             for i, bbox in enumerate(outputs["instances"].pred_boxes):
                 x_min, y_min, x_max, y_max = bbox.int().cpu().numpy()
 
-                if outputs["instances"].pred_classes[i] == 2:
+                if outputs["instances"].pred_classes[i] == CAR_LABEL:
                     if frame_num not in bbxs:
                         bbxs[frame_num] = []
 
