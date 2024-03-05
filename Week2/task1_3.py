@@ -84,6 +84,9 @@ def run_finetuning(device="cpu"):
     model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=True).to(
         device
     )
+    for param in model.parameters():
+        param.requires_grad = False
+
     train(model, train_loader, test_loader, device, annotations)
 
 if __name__ == "__main__":
