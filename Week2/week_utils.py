@@ -1,9 +1,9 @@
 import json
 import os
 import xml.etree.ElementTree as ET
-
 import cv2
 from tqdm import tqdm
+import torch.distributed as dist
 
 DEFAULT_VIDEO_PATH = "../Data/AICity_data_S03_C010/AICity_data/train/S03/c010/vdo.avi"
 
@@ -134,3 +134,14 @@ def readXMLtoAnnotation(annotationFile, remParked=False):
                     annotations[frame] = [{"name": className, "bbox": bbox}]
 
     return annotations
+
+
+def convertAnnotations(annotations):
+    new_annotations = {}
+    for frame in annotations:
+        bbxs = []
+        for obj in annotations[frame]:
+            obj["bbox"] = [int(x) for x in obj["bbox"]]
+            bbxs.append(obj["bbox"])
+        new_annotations[int(frame)] = bbxs
+    return new_annotations
