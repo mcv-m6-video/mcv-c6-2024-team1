@@ -1,22 +1,34 @@
+import os
+
 import numpy as np
 
 import torch
 import torchvision
-from week_utils import readXMLtoAnnotation, convertAnnotations
+
+from task1_4 import *
+from week_utils import readXMLtoAnnotation, convertAnnotations, split_video
 from datasets import create_dataloaders
 from tqdm import tqdm
 from metrics import mAP
-
 NUM_EPOCHS = 1
 LEARNING_RATE = 0.005
 MOMENTUM = 0.9
 WEIGHT_DECAY = 0.0005
-
+UNFREZED_LAYERS = 3
 FRAME_25_PERCENT = 510
 ANNOTATIONS_PATH = (
     "../Data/AICity_data_S03_C010/ai_challenge_s03_c010-full_annotation.xml"
 )
 VIDEO_PATH = "../Data/AICity_data_S03_C010/AICity_data/train/S03/c010/vdo.avi"
+
+FRAMES_PATH = "video_frames"
+if not os.path.exists(FRAMES_PATH):
+    os.makedirs(FRAMES_PATH)
+    split_video(VIDEO_PATH)
+else:
+    print("Frames already extracted")
+
+frames = os.listdir(FRAMES_PATH)
 
 def evaluate(model, test_loader, device, annotations):
     model.eval()
@@ -63,7 +75,7 @@ def train(model, train_loader, test_loader, device, annotations):
         if epoch % 10 == 0:
             print(f"Epoch: {epoch}, mAP: {value_mAP}, loss: {losses}")
 
-def run_finetuning(device="cpu"):
+def run_finetuning(device="cpu", strategy='A'):
     annotations = readXMLtoAnnotation(ANNOTATIONS_PATH)
     formatted_annotations = convertAnnotations(annotations)
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
@@ -73,23 +85,28 @@ def run_finetuning(device="cpu"):
             torchvision.transforms.ToTensor(),
         ]
     )
+    n_frames = len(frames)
+    if strategy == 'A':
+        train_idxs, test_idxs = split_strategy_A(n_frames)
+    elif strategy == 'B':
+        train_idxs, test_idxs = split_strategy_B(0,n_frames)  # Fold 0 is the same as Strategy A
+    else:
+        train_idxs, test_idxs = split_strategy_C(n_frames)
 
-    # THIS SHOULD BE CHANGED WHEN K-FOLDING
-    train_idxs, test_idxs = np.arange(0, FRAME_25_PERCENT), np.arange(
-        FRAME_25_PERCENT, FRAME_25_PERCENT * 4
-    )
-    train_loader, test_loader = create_dataloaders(
-        formatted_annotations, VIDEO_PATH, train_idxs, test_idxs, transformations, batch_size=2
-    )
-    model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=True).to(
-        device
-    )
-    for param in model.parameters():
-        param.requires_grad = False
+    train_loader, test_loader = create_dataloaders(formatted_annotations, VIDEO_PATH, train_idxs, test_idxs,
+                                                   transformations, batch_size=2)
+    model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=True).to(device)
+
+    for param_idx, param in enumerate(model.parameters()):
+        if param_idx < len(list(model.parameters())) - UNFREZED_LAYERS:
+            param.requires_grad = False
 
     train(model, train_loader, test_loader, device, annotations)
-
+    map = evaluate(model, test_loader, device, annotations)
+    print(
+        f'Using NUM_EPOCHS = {NUM_EPOCHS} LEARNING_RATE = {LEARNING_RATE} MOMENTUM = {MOMENTUM} WEIGHT_DECAY = {WEIGHT_DECAY} UNFREZED_LAYERS ={UNFREZED_LAYERS} using strategy {strategy}')
+    print('Finetuned map: ', map)
 if __name__ == "__main__":
     run_finetuning(
-        device="cuda" if torch.cuda.is_available() else "cpu",
+        device="cuda" if torch.cuda.is_available() else "cpu",strategy='A'
     )
