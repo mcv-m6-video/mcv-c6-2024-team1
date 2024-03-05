@@ -7,4 +7,4 @@ Data/**
 **/yolov5s.pt
 .vscode/
 config/**
-Week2/results/tracking_vdo.avi
+Week2/results/*.avi
