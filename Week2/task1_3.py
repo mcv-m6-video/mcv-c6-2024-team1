@@ -16,13 +16,13 @@ LEARNING_RATE = 0.005
 MOMENTUM = 0.9
 WEIGHT_DECAY = 0.0005
 UNFROZEN_LAYERS = 3
-FRAME_25_PERCENT = 510
+
 ANNOTATIONS_PATH = (
     "../Data/AICity_data_S03_C010/ai_challenge_s03_c010-full_annotation.xml"
 )
 VIDEO_PATH = "../Data/AICity_data_S03_C010/AICity_data/train/S03/c010/vdo.avi"
-
 FRAMES_PATH = "video_frames"
+CAR_LABEL = 3
 
 if not os.path.exists(FRAMES_PATH):
     os.makedirs(FRAMES_PATH)
@@ -50,7 +50,7 @@ def evaluate(model, test_loader, device, annotations):
                 for i, bbox in enumerate(boxes):
                     x_min, y_min, x_max, y_max = bbox.int().cpu().numpy()
 
-                    if labels[i] == 3:
+                    if labels[i] == CAR_LABEL:
                         if frame_num not in bbxs:
                             bbxs[frame_num] = []
 
