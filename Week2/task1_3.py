@@ -1,15 +1,13 @@
 import os
 
-import numpy as np
-
 import torch
 import torchvision
-
-from task1_4 import *
-from week_utils import readXMLtoAnnotation, convertAnnotations, split_video
-from datasets import create_dataloaders
 from tqdm import tqdm
+
+from datasets import create_dataloaders
 from metrics import mAP
+from task1_4 import *
+from week_utils import convertAnnotations, readXMLtoAnnotation, split_video
 
 NUM_EPOCHS = 1
 LEARNING_RATE = 0.005
@@ -84,7 +82,7 @@ def train(model, train_loader, test_loader, device, annotations):
             print(f"Epoch: {epoch}, mAP: {value_mAP}, loss: {losses}")
 
 
-def run_finetuning(device="cpu", strategy="A"):
+def run_finetuning(device="cpu", strategy="A", fold_idx=0):
     annotations = readXMLtoAnnotation(ANNOTATIONS_PATH)
     formatted_annotations = convertAnnotations(annotations)
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
@@ -99,7 +97,7 @@ def run_finetuning(device="cpu", strategy="A"):
         train_idxs, test_idxs = split_strategy_A(n_frames)
     elif strategy == "B":
         train_idxs, test_idxs = split_strategy_B(
-            0, n_frames
+            fold_idx, n_frames
         )  # Fold 0 is the same as Strategy A
     else:
         train_idxs, test_idxs = split_strategy_C(n_frames)
@@ -129,4 +127,4 @@ def run_finetuning(device="cpu", strategy="A"):
 
 
 if __name__ == "__main__":
-    run_finetuning(device="cuda" if torch.cuda.is_available() else "cpu", strategy="A")
+    run_finetuning(device="cuda" if torch.cuda.is_available() else "cpu")

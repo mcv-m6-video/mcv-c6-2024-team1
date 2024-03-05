@@ -10,6 +10,7 @@ from detectron2 import model_zoo
 from detectron2.config import get_cfg
 from detectron2.engine import DefaultPredictor
 from tqdm import tqdm
+
 from week_utils import save_json
 
 CAR_LABEL = 2

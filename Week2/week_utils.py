@@ -1,9 +1,10 @@
 import json
 import os
 import xml.etree.ElementTree as ET
+
 import cv2
-from tqdm import tqdm
 import torch.distributed as dist
+from tqdm import tqdm
 
 DEFAULT_VIDEO_PATH = "../Data/AICity_data_S03_C010/AICity_data/train/S03/c010/vdo.avi"
 

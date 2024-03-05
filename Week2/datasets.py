@@ -1,5 +1,5 @@
-import torch
 import cv2
+import torch
 import torchvision
 
 
