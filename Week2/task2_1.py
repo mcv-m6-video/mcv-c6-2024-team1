@@ -41,6 +41,8 @@ def track_max_overlap(file_in, file_out, iou_thr=0.4):
     bbxs = data
     f.close()
 
+    track_count = 0
+
     # Iterate over each dictionary in the list
     for i in tqdm(range(len(bbxs)), desc="Tracking bounding boxes"):
 
@@ -49,7 +51,8 @@ def track_max_overlap(file_in, file_out, iou_thr=0.4):
         # Assign a different track to each object on the scene for first frame
         if i == 0:
             for k in bbxs[i]["xmin"]:
-                track_ids[k] = int(k)
+                track_ids[k] = track_count
+                track_count += 1
 
         else:
             # Iterate over each bbx
@@ -62,27 +65,32 @@ def track_max_overlap(file_in, file_out, iou_thr=0.4):
 
                 # Iterate over each prev bbx
                 for j in bbxs[i - 1]["xmin"]:
-                    # Check if both bbxs are same class
-                    if bbxs[i]["class"][k] == bbxs[i - 1]["class"][j]:
-                        prev_tl = (bbxs[i - 1]["xmin"][j],
-                                   bbxs[i - 1]["ymin"][j])
-                        prev_br = (bbxs[i - 1]["xmax"][j],
-                                   bbxs[i - 1]["ymax"][j])
+                    # Check if track has already been assigned
+                    if bbxs[i - 1]["track"][j] not in track_ids.values():
+                        # Check if both bbxs are same class
+                        if bbxs[i]["class"][k] == bbxs[i - 1]["class"][j]:
+                            prev_tl = (bbxs[i - 1]["xmin"][j], bbxs[i - 1]["ymin"][j])
+                            prev_br = (bbxs[i - 1]["xmax"][j], bbxs[i - 1]["ymax"][j])
 
-                        # Calculate IoU
-                        iou = cal_IoU(prev_tl, prev_br, new_tl, new_br)
+                            # Calculate IoU
+                            iou = cal_IoU(prev_tl, prev_br, new_tl, new_br)
 
-                        if iou > max_iou and iou > iou_thr:
-                            max_iou = iou
-                            max_idx = j
+                            if iou > max_iou and iou > iou_thr:
+                                max_iou = iou
+                                max_idx = j
 
                 # Check if any bbx passed though the iou thershold
                 if max_iou == -1:
                     # New track id
-                    track_ids[k] = max(bbxs[i - 1]["track"].values()) + 1
+                    track_count += 1
+                    track_ids[k] = track_count
                 else:
                     # Put track id of bbx with max iou
                     track_ids[k] = bbxs[i - 1]["track"][max_idx]
+
+        if len(set(track_ids.values())) < len(track_ids):
+            print("Repeated track ids")
+            raise
 
         bbxs[i]["track"] = track_ids
 

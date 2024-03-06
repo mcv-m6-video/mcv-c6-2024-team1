@@ -15,7 +15,7 @@ FILE_IN = "bbxs_clean.json"
 FILE_OUT = "kalman"
 
 AICITY_DATA_PATH = "AICity_data/train/S03/c010"
-VIDEO_OUT_PATH = "./results/kalman_tracking_vdo.avi"
+VIDEO_OUT_PATH = "./results/kalman_tracking_vdo"
 
 # Read gt file
 ANOTATIONS_PATH = "ai_challenge_s03_c010-full_annotation.xml"
@@ -31,7 +31,6 @@ def get_centroid(box: np.ndarray):  # box [xmin,ymin,xmax,ymax]
 
 class KalmanFilter:
     def __init__(self, max_age=30, iou_threshold=0.4):
-        print(max_age, iou_threshold)
         self.max_age = int(max_age)
         self.iou_threshold = iou_threshold
         self.kalman_tracker = Sort(
@@ -92,6 +91,7 @@ class KalmanFilter:
             "x_max": x_max,
             "y_max": y_max,
         }
+        self.n_frame +=1
 
     def draw_tracking_result(self, frame_img):
         img_draw = frame_img.copy()
@@ -215,7 +215,7 @@ if __name__ == "__main__":
         "--store", type=bool, default=False, help="Flag to generate video output"
     )
     parser.add_argument(
-        "--vizualize", type=bool, default=True, help="Flag to generate video output"
+        "--vizualize", type=bool, default=False, help="Flag to generate video output"
     )
 
     # Kalman Filter Vars
