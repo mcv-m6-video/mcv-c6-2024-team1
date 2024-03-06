@@ -1,9 +1,10 @@
 import json
 import os
 import xml.etree.ElementTree as ET
+
 import cv2
+import numpy as np
 from tqdm import tqdm
-import torch.distributed as dist
 
 DEFAULT_VIDEO_PATH = "../Data/AICity_data_S03_C010/AICity_data/train/S03/c010/vdo.avi"
 
@@ -45,12 +46,14 @@ def save_json(file: dict, name: str):
 
 
 def display_video_with_detections(
-    video_path: str = DEFAULT_VIDEO_PATH, store_video: bool = False
+    video_path: str = DEFAULT_VIDEO_PATH, store_video: bool = True
 ):
     current_frame = 0
-    bbxs = load_json("bbxs_clean.json")
+    bbxs = load_json("results/bbxs_detectron_faster_rcnn_R_50_FPN_3x.json")
     cap = cv2.VideoCapture(video_path)
-
+    annotations = load_json(
+        "../Week1/annotations/annots.json"
+    )
     if store_video:
         frame_width = int(cap.get(3))
         frame_height = int(cap.get(4))
@@ -66,18 +69,30 @@ def display_video_with_detections(
         if not ret:
             break
 
-        current_bbx = bbxs[current_frame]
-        names = current_bbx["name"]
-        for key in names:
-            xmin = int(current_bbx["xmin"][key])
-            ymin = int(current_bbx["ymin"][key])
-            xmax = int(current_bbx["xmax"][key])
-            ymax = int(current_bbx["ymax"][key])
-            cv2.rectangle(frame, (xmin, ymin), (xmax, ymax), (0, 255, 0), 2)
+        current_bbxs = bbxs[str(current_frame)]
 
-        cv2.imshow("Frame", frame)
-        if store_video:
-            out.write(frame)
+        if current_frame >= 535:
+            if str(current_frame) in annotations:
+                current_bbxs_annot = annotations[str(current_frame)]
+            else:
+                current_bbxs_annot = []
+
+            for i, bbox in enumerate(current_bbxs):
+                xmin = bbox["bbox"][0]
+                ymin = bbox["bbox"][1]
+                xmax = bbox["bbox"][2]
+                ymax = bbox["bbox"][3]
+                if i < len(current_bbxs_annot):
+                    xmin_anns = int(current_bbxs_annot[i]["bbox"][0])
+                    ymin_anns = int(current_bbxs_annot[i]["bbox"][1])
+                    xmax_anns = int(current_bbxs_annot[i]["bbox"][2])
+                    ymax_anns = int(current_bbxs_annot[i]["bbox"][3])
+                    cv2.rectangle(frame, (xmin_anns, ymin_anns), (xmax_anns, ymax_anns), (0, 0, 255), 2)
+                cv2.rectangle(frame, (xmin, ymin), (xmax, ymax), (0, 255, 0), 2)
+
+            cv2.imshow("Frame", frame)
+            if store_video:
+                out.write(frame)
 
         # Break the loop when 'q' is pressed
         if cv2.waitKey(1) & 0xFF == ord("q"):
@@ -145,3 +160,30 @@ def convertAnnotations(annotations):
             bbxs.append(obj["bbox"])
         new_annotations[int(frame)] = bbxs
     return new_annotations
+
+
+def split_strategy_A(number_of_frames):
+    FRAME_25_PERCENT = int(number_of_frames / 4)
+    train_idxs = np.arange(0, FRAME_25_PERCENT)
+    test_idxs = np.arange(FRAME_25_PERCENT, number_of_frames)
+    return train_idxs, test_idxs
+
+
+def split_strategy_B(fold_idx, number_of_frames, k=4):
+    # Assuming 4 folds
+    fold_size = number_of_frames / k
+    train_idxs = []
+    test_idxs = []
+    for i in range(k):
+        if i == fold_idx:
+            train_idxs = np.arange(i * fold_size, (i + 1) * fold_size)
+        else:
+            test_idxs.extend(np.arange(i * fold_size, (i + 1) * fold_size))
+    return train_idxs, test_idxs
+
+
+def split_strategy_C(number_of_frames):
+    train_size = int(0.25 * number_of_frames)
+    train_idxs = np.random.choice(number_of_frames, train_size, replace=False)
+    test_idxs = np.setdiff1d(np.arange(number_of_frames), train_idxs)
+    return train_idxs, test_idxs

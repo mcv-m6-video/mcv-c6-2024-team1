@@ -1,0 +1,14 @@
+detectron2==0.6
+filterpy==1.4.5
+lap==0.4.0
+matplotlib==3.7.3
+numpy==1.24.4
+opencv_contrib_python==4.8.1.78
+opencv_python==4.8.1.78
+opencv_python_headless==4.8.1.78
+scipy==1.12.0
+skimage==0.0
+torch==2.1.0
+torchvision==0.16.0
+tqdm==4.66.1
+trackeval==1.0.dev1
