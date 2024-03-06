@@ -10,7 +10,7 @@ out_2_1 = "./Week2/results/bbxs_clean_tracked.txt"
 gt_annot = "./Data/ai_challenge_s03_c010-full_annotation.xml"
 out_gt = "./Week2/results/s03_gt.txt"
 
-kalman_ins = ["./Week2/results/kalman.json", "./Week2/results/kalman_10_3.json", "./Week2/results/kalman_30_3.json", "./Week2/results/kalman_50_3.json", "./Week2/results/kalman25_4.json", "./Week2/results/kalman0.json", ]
+kalman_ins = ["./Week2/results/kalman_new2.json"]
 out_folder = "./Week2/results/"
 
 def write_bbxs_to_csv(data, out):
