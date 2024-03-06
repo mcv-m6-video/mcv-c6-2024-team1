@@ -79,8 +79,18 @@ Run the script.
   By default, the script will output a JSON with the tracking information.
 
 ### Task 2.3
-  ```python
-  python 
+Convert the outputs of the trackers to the required csv format:
+```
+python convert_to_trackeval.py
+```
+
+Create the folder structure required by TrackEval using the obtained folders
+![image](https://github.com/mcv-m6-video/mcv-c6-2024-team1/assets/32550964/a6bc2afc-5f08-4b0b-a3af-f7810999e13f)
+
+
+Then run the script with the appropiate arguments:
+  ```
+python task2_3.py --GT_FOLDER .\TrackEval\data\gt\mot_challenge\ --TRACKERS_FOLDER .\TrackEval\data\trackers\mot_challenge\ --BENCHMARK S03aicity --METRICS HOTA Identity --DO_PREPROC False --TRACKERS_TO_EVAL ioutrack
   ```
 
 
