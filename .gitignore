@@ -7,4 +7,6 @@ Data/**
 **/yolov5s.pt
 .vscode/
 config/**
-Week2/results/*.avi
+Week2/results/
+c6/
+
