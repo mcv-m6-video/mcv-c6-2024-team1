@@ -89,7 +89,8 @@ Create the folder structure required by TrackEval using the obtained folders
 
 
 Then run the script with the appropiate arguments:
-  ```python task2_3.py --GT_FOLDER .\TrackEval\data\gt\mot_challenge\ --TRACKERS_FOLDER .\TrackEval\data\trackers\mot_challenge\ --BENCHMARK S03aicity --METRICS HOTA Identity --DO_PREPROC False --TRACKERS_TO_EVAL ioutrack
+  ```
+python task2_3.py --GT_FOLDER .\TrackEval\data\gt\mot_challenge\ --TRACKERS_FOLDER .\TrackEval\data\trackers\mot_challenge\ --BENCHMARK S03aicity --METRICS HOTA Identity --DO_PREPROC False --TRACKERS_TO_EVAL ioutrack
   ```
 
 
