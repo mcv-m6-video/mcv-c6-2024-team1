@@ -54,9 +54,12 @@ This task can be executed with the following script:
 The `strategy` and `fold-index` flags are used for deciding which strategy to use when using K-Fold evaluation. If the `strategy` decided is `B`, then the parameter `fold-index` needs to be set.
 
 ### Task 2.1
+This task can be executed with the following script:
   ```python
-  python 
+  python task2_1.py 
   ```
+Run `python task2_1.py -h` to check the setable parameters for this script.
+
 ### Task 2.2
   ```python
   python 
