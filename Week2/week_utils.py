@@ -162,9 +162,9 @@ def split_strategy_B(fold_idx, number_of_frames, k=4):
     test_idxs = []
     for i in range(k):
         if i == fold_idx:
-            test_idxs = np.arange(i * fold_size, (i + 1) * fold_size)
+            train_idxs = np.arange(i * fold_size, (i + 1) * fold_size)
         else:
-            train_idxs.extend(np.arange(i * fold_size, (i + 1) * fold_size))
+            test_idxs.extend(np.arange(i * fold_size, (i + 1) * fold_size))
     return train_idxs, test_idxs
 
 
