@@ -102,7 +102,7 @@ if __name__ == "__main__":
         "--predictions-file",
         type=str,
         default="bbxs_clean.json",
-        help="Name of prediction json file",
+        help="Name of prediction json file (YOLO style)",
     )
     parser.add_argument(
         "--tracking-file",
