@@ -62,9 +62,22 @@ Run `python task2_1.py -h` to check the setable parameters for this script.
 Disclaimer: this scripts runs tracking given a json object detection prediction file with YOLO style.
 
 ### Task 2.2
+Run the script.
   ```python
-  python 
+ ' python task 2_2.py [--video_path]  [--results_path] [--o_name] [--detections] [--store] [--vizualize] [--thr] [--max_age]'
   ```
+  Where:
+  - 'video_path' is the directory of the video from which the detections has been extracted.
+  - 'results_path' is the follder directory where the outputs will be placed.
+  - 'o_name' name for the output (JSON and video).
+  - 'detections' json file with detections.
+  - 'store' flag to save the video.
+  - 'vizualize' flag to vizualize the video.
+  - 'thr' minimum iou to associate a detection with a prediction.
+  - 'max_age' maximum number of frames before kill a track.
+
+  By default, the script will output a JSON with the tracking information.
+
 ### Task 2.3
   ```python
   python 
