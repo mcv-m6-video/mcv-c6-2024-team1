@@ -54,9 +54,13 @@ This task can be executed with the following script:
 The `strategy` flag is used for deciding which strategy to use when using K-Fold evaluation. 
 
 ### Task 2.1
+This task can be executed with the following script:
   ```python
-  python 
+  python task2_1.py 
   ```
+Run `python task2_1.py -h` to check the setable parameters for this script.
+Disclaimer: this scripts runs tracking given a json object detection prediction file with YOLO style.
+
 ### Task 2.2
   ```python
   python 
