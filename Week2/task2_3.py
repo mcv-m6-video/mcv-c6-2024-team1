@@ -33,6 +33,7 @@ Command Line Arguments: Defaults, # Comments
         'METRICS': ['HOTA', 'CLEAR', 'Identity', 'VACE']
 """
 
+import sys
 import os
 import argparse
 from multiprocessing import freeze_support
