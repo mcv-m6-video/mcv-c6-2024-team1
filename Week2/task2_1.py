@@ -66,7 +66,7 @@ def track_max_overlap(file_in, file_out, iou_thr=0.4):
                 # Iterate over each prev bbx
                 for j in bbxs[i - 1]["xmin"]:
                     # Check if track has already been assigned
-                    if bbxs[i - 1]["track"][j] not in track_ids:
+                    if bbxs[i - 1]["track"][j] not in track_ids.values():
                         # Check if both bbxs are same class
                         if bbxs[i]["class"][k] == bbxs[i - 1]["class"][j]:
                             prev_tl = (bbxs[i - 1]["xmin"][j], bbxs[i - 1]["ymin"][j])
@@ -89,8 +89,8 @@ def track_max_overlap(file_in, file_out, iou_thr=0.4):
                     track_ids[k] = bbxs[i - 1]["track"][max_idx]
 
         if len(set(track_ids.values())) < len(track_ids):
-            print("track_ids has repeated values")
-            print(track_ids)
+            print("Repeated track ids")
+            raise
 
         bbxs[i]["track"] = track_ids
 
