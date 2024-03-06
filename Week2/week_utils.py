@@ -169,17 +169,16 @@ def split_strategy_A(number_of_frames):
     return train_idxs, test_idxs
 
 
-def split_strategy_B(fold_idx, number_of_frames):
+def split_strategy_B(fold_idx, number_of_frames, k=4):
     # Assuming 4 folds
-    fold_size = number_of_frames / 4
+    fold_size = number_of_frames / k
     train_idxs = []
     test_idxs = []
-    for i in range(4):
-        start, end = int(i * fold_size), int((i + 1) * fold_size)
+    for i in range(k):
         if i == fold_idx:
-            test_idxs.extend(range(start, end))
+            train_idxs = np.arange(i * fold_size, (i + 1) * fold_size)
         else:
-            train_idxs.extend(range(start, end))
+            test_idxs.extend(np.arange(i * fold_size, (i + 1) * fold_size))
     return train_idxs, test_idxs
 
 

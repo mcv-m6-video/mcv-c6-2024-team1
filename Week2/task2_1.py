@@ -1,18 +1,9 @@
 import json
-
+from argparse import ArgumentParser
 from tqdm import tqdm
 
 from visualize_tracking import visualize_tracking
 from week_utils import *
-
-RESULTS_PATH = "./results/"
-FILE_IN = "bbxs_clean.json"
-FILE_OUT = "bbxs_clean_tracked.json"
-
-VIDEO_PATH = "../Data/AICity_data/train/S03/c010/vdo.avi"
-VIDEO_OUT_PATH = "./results/tracking_vdo.avi"
-SAVE = True
-VISUALIZE = True
 
 
 def cal_IoU(prev_tl, prev_br, new_tl, new_br):
@@ -23,10 +14,12 @@ def cal_IoU(prev_tl, prev_br, new_tl, new_br):
     y_bottom = min(prev_br[1], new_br[1])
 
     # If the intersection is valid (non-negative area), calculate the intersection area
-    intersection_area = max(0, x_right - x_left + 1) * max(0, y_bottom - y_top + 1)
+    intersection_area = max(0, x_right - x_left + 1) * \
+        max(0, y_bottom - y_top + 1)
 
     # Calculate areas of the individual bounding boxes
-    prev_box_area = (prev_br[0] - prev_tl[0] + 1) * (prev_br[1] - prev_tl[1] + 1)
+    prev_box_area = (prev_br[0] - prev_tl[0] + 1) * \
+        (prev_br[1] - prev_tl[1] + 1)
     new_box_area = (new_br[0] - new_tl[0] + 1) * (new_br[1] - new_tl[1] + 1)
 
     # Calculate the union area
@@ -71,8 +64,10 @@ def track_max_overlap(file_in, file_out, iou_thr=0.4):
                 for j in bbxs[i - 1]["xmin"]:
                     # Check if both bbxs are same class
                     if bbxs[i]["class"][k] == bbxs[i - 1]["class"][j]:
-                        prev_tl = (bbxs[i - 1]["xmin"][j], bbxs[i - 1]["ymin"][j])
-                        prev_br = (bbxs[i - 1]["xmax"][j], bbxs[i - 1]["ymax"][j])
+                        prev_tl = (bbxs[i - 1]["xmin"][j],
+                                   bbxs[i - 1]["ymin"][j])
+                        prev_br = (bbxs[i - 1]["xmax"][j],
+                                   bbxs[i - 1]["ymax"][j])
 
                         # Calculate IoU
                         iou = cal_IoU(prev_tl, prev_br, new_tl, new_br)
@@ -95,8 +90,54 @@ def track_max_overlap(file_in, file_out, iou_thr=0.4):
 
 
 if __name__ == "__main__":
-    track_max_overlap(RESULTS_PATH + FILE_IN, RESULTS_PATH + FILE_OUT)
-    if SAVE or VISUALIZE:
+    parser = ArgumentParser()
+
+    parser.add_argument(
+        "--results-path",
+        type=str,
+        default="./results/",
+        help="Path to results folder",
+    )
+    parser.add_argument(
+        "--predictions-file",
+        type=str,
+        default="bbxs_clean.json",
+        help="Name of prediction json file (YOLO style)",
+    )
+    parser.add_argument(
+        "--tracking-file",
+        type=str,
+        default="bbxs_clean_tracked.json",
+        help="Name of output file",
+    )
+    parser.add_argument(
+        "--video-path",
+        type=str,
+        default="../Data/AICity_data/train/S03/c010/vdo.avi",
+        help="Path to video for visualization",
+    )
+    parser.add_argument(
+        "--visualization-path",
+        type=str,
+        default="./results/tracking_vdo.avi",
+        help="Path to save visualization video",
+    )
+    parser.add_argument(
+        "--save-video",
+        type=bool,
+        default=True,
+        help="Bool to save video",
+    )
+    parser.add_argument(
+        "--visualize-video",
+        type=bool,
+        default=True,
+        help="Bool to visualize video on execution",
+    )
+    args = parser.parse_args()
+
+    track_max_overlap(args.results_path + args.predictions_file, args.results_path + args.tracking_file)
+    if args.save_video or args.visualize_video:
         visualize_tracking(
-            VIDEO_PATH, RESULTS_PATH + FILE_OUT, VIDEO_OUT_PATH, SAVE, VISUALIZE
+            args.video_path, args.results_path + args.tracking_file, args.visualization_path, args.save_video, args.visualize_video
         )
