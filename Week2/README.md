@@ -49,9 +49,9 @@ There are no extra arguments for this task script, given that we decided to set 
 ### Task 1.4
 This task can be executed with the following script:
   ```python
-  python task1_4.py --strategy {A, B, C} --fold-index {0, 1, 2, 3}
+  python task1_4.py --strategy {A, B, C} 
   ```
-The `strategy` and `fold-index` flags are used for deciding which strategy to use when using K-Fold evaluation. If the `strategy` decided is `B`, then the parameter `fold-index` needs to be set.
+The `strategy` flag is used for deciding which strategy to use when using K-Fold evaluation. 
 
 ### Task 2.1
 This task can be executed with the following script:
