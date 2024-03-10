@@ -1,20 +1,26 @@
+import time
+
+import matplotlib.pyplot as plt
 import numpy as np
 from PIL import Image
-import matplotlib.pyplot as plt
 
-import time
 
 # Define a function to calculate Mean Square Error (MSE)
 def calculate_mse(flow, ground_truth_flow):
     mse = np.mean(np.square(flow - ground_truth_flow))
     return mse
 
+
 # Define a function to calculate Percentage of Erroneous Pixels (PEPN)
 def calculate_pepn(flow, ground_truth_flow, threshold=3):
-    erroneous_pixels = np.sum(np.sqrt(np.sum(np.square(flow - ground_truth_flow), axis=-1)) > threshold)
+    erroneous_pixels = np.sum(
+        np.sqrt(np.sum(np.square(flow - ground_truth_flow), axis=-1)) > threshold
+    )
     total_pixels = flow.shape[0] * flow.shape[1]
     pepn = erroneous_pixels / total_pixels * 100
     return pepn
+
+
 def get_blocks(img, block_shape):
     """Divide the input image into blocks of specified shape.
 
@@ -33,27 +39,32 @@ def get_blocks(img, block_shape):
         split_shape: (n_vertical_blocks, n_horizontal_blocks)
     """
     # Number of blocks in each direction
-    split_shape = np.ceil((
-        img.shape[0] / block_shape[0],
-        img.shape[1] / block_shape[1]
-    )).astype(np.int32)
+    split_shape = np.ceil(
+        (img.shape[0] / block_shape[0], img.shape[1] / block_shape[1])
+    ).astype(np.int32)
 
     blocks = []
     positions = []
     y_position = 0
     for i in range(split_shape[0]):
         if i != split_shape[0]:
-            stripe = img[i * block_shape[0]:i * block_shape[0] + block_shape[0]]  # for even block/img shapes
+            stripe = img[
+                i * block_shape[0] : i * block_shape[0] + block_shape[0]
+            ]  # for even block/img shapes
         else:
-            stripe = img[i * block_shape[0]:]  # for uneven block/img shapes
+            stripe = img[i * block_shape[0] :]  # for uneven block/img shapes
         x_position = 0
         block = None
         # In this loop we are going to create the blocks for each stripe of the image
         for j in range(split_shape[1]):
             if j != split_shape[1]:
-                block = stripe[:, j * block_shape[1]: j * block_shape[1] + block_shape[1]] # case when the block is even, we can take the block shape as it is
+                block = stripe[
+                    :, j * block_shape[1] : j * block_shape[1] + block_shape[1]
+                ]  # case when the block is even, we can take the block shape as it is
             else:
-                block = stripe[:, j * block_shape[1]:] # case when the block is uneven, we need to take the rest of the stripe
+                block = stripe[
+                    :, j * block_shape[1] :
+                ]  # case when the block is uneven, we need to take the rest of the stripe
             blocks.append(block)
             positions.append((y_position, x_position))
             x_position += block.shape[1]
@@ -113,8 +124,14 @@ def block_match(ref_frame, curr_frame, block_shape, win_shape, metric_func):
 
         # Ensure the displacement stays within the bounds of the image
         displacement = (
-            max(-pos[0], min(displacement[0], ref_frame.shape[0] - pos[0] - block_shape[0])),
-            max(-pos[1], min(displacement[1], ref_frame.shape[1] - pos[1] - block_shape[1]))
+            max(
+                -pos[0],
+                min(displacement[0], ref_frame.shape[0] - pos[0] - block_shape[0]),
+            ),
+            max(
+                -pos[1],
+                min(displacement[1], ref_frame.shape[1] - pos[1] - block_shape[1]),
+            ),
         )
 
         flow.append(displacement)
@@ -123,8 +140,9 @@ def block_match(ref_frame, curr_frame, block_shape, win_shape, metric_func):
     return flow
 
 
-def block_match_log(ref_frame, curr_frame, block_shape, win_shape, metric_func,
-                    max_level=3):
+def block_match_log(
+    ref_frame, curr_frame, block_shape, win_shape, metric_func, max_level=3
+):
     """Perform logarithmic block matching.
 
     Calculate apparent movement between blocks of two frames, using
@@ -155,20 +173,18 @@ def block_match_log(ref_frame, curr_frame, block_shape, win_shape, metric_func,
         sliding_center = np.array(sliding.shape)[:2] // 2
         for level in range(max_level):
             shift = np.array(sliding.shape)[:2] // 2 ** (level + 1) - 1
-            indices = np.array([
-                sliding_center - shift,
-                sliding_center,
-                sliding_center + shift
-            ]).T
-            indices = np.array([
-                [indices[0][0], indices[1][1]],
-
-                [indices[0][1], indices[1][0]],
-                [indices[0][1], indices[1][1]],
-                [indices[0][1], indices[1][2]],
-
-                [indices[0][2], indices[1][1]],
-            ])
+            indices = np.array(
+                [sliding_center - shift, sliding_center, sliding_center + shift]
+            ).T
+            indices = np.array(
+                [
+                    [indices[0][0], indices[1][1]],
+                    [indices[0][1], indices[1][0]],
+                    [indices[0][1], indices[1][1]],
+                    [indices[0][1], indices[1][2]],
+                    [indices[0][2], indices[1][1]],
+                ]
+            )
             indices = np.clip(indices, 0, np.array(sliding.shape)[:2] - 1)
             candidates = np.array([sliding[w[0]][w[1]] for w in indices])
             scores = metric_func(candidates, block)
@@ -178,15 +194,19 @@ def block_match_log(ref_frame, curr_frame, block_shape, win_shape, metric_func,
             sliding_center = current_center
             pass
         best_idx_2d = sliding_center
-        best_idx_2d_img = (best_idx_2d[0] + win_pos[0],
-                           best_idx_2d[1] + win_pos[1])
-        displacement = (best_idx_2d_img[0] - pos[0],
-                        best_idx_2d_img[1] - pos[1])
+        best_idx_2d_img = (best_idx_2d[0] + win_pos[0], best_idx_2d[1] + win_pos[1])
+        displacement = (best_idx_2d_img[0] - pos[0], best_idx_2d_img[1] - pos[1])
         # BUG: flow sometimes exceedes possible values
         # to fix the bug, we need to clip the displacement to the range of possible values in the image (ref_frame)
         displacement = (
-            max(-pos[0], min(displacement[0], ref_frame.shape[0] - pos[0] - block_shape[0])),
-            max(-pos[1], min(displacement[1], ref_frame.shape[1] - pos[1] - block_shape[1]))
+            max(
+                -pos[0],
+                min(displacement[0], ref_frame.shape[0] - pos[0] - block_shape[0]),
+            ),
+            max(
+                -pos[1],
+                min(displacement[1], ref_frame.shape[1] - pos[1] - block_shape[1]),
+            ),
         )
         flow.append(displacement)
     flow = np.array(flow).reshape((*split_shape, 2))
@@ -201,28 +221,36 @@ def l2(a, b):
     sq_sum = np.sum(square, axis=(-1, -2, -3))
     return sq_sum
 
+
 # use an existing L2 metric function
 if __name__ == "__main__":
     # USAGE EXAMPLE
     from time import time
+
     sequence_number = "45"
-    CURRENT_IMAGE = f"../Data/data_stereo_flow/training/colored_0/0000{sequence_number}_10.png"
-    REF_IMAGE = f"../Data/data_stereo_flow/training/colored_0/0000{sequence_number}_11.png"
+    CURRENT_IMAGE = (
+        f"../Data/data_stereo_flow/training/colored_0/0000{sequence_number}_10.png"
+    )
+    REF_IMAGE = (
+        f"../Data/data_stereo_flow/training/colored_0/0000{sequence_number}_11.png"
+    )
     GT_PATH = f"../Data/data_stereo_flow/training/flow_noc/0000{sequence_number}_10.png"
     # Block size (N): It is related to the expected movement:
     block_size = 16
     # Search area (P): It is related to the range of expected movement:
     # P pixels in every direction: (2P+N)x(2P+N) pixels. Typically P = N
     pixels = 16
-    search_area = 2*pixels*block_size
+    search_area = 2 * pixels * block_size
     # Quantization step: Related to the accuracy of the estimated motion.
     # Typically, 1 pixel but it can go down to 1/4 of pixel
     step_size = 1
     curr = np.asarray(Image.open(CURRENT_IMAGE))
     ref = np.asarray(Image.open(REF_IMAGE))
     initial_time = time()
-    #flow = block_match(ref, curr, (block_size, block_size), (search_area, search_area), l2)
-    flow = block_match_log(ref, curr, (block_size, block_size), (search_area, search_area), l2)
+    # flow = block_match(ref, curr, (block_size, block_size), (search_area, search_area), l2)
+    flow = block_match_log(
+        ref, curr, (block_size, block_size), (search_area, search_area), l2
+    )
     final_time = time()
     # Assuming ground truth flow is available
     ground_truth_flow = np.zeros_like(flow)  # Replace with actual ground truth flow
@@ -239,6 +267,6 @@ if __name__ == "__main__":
     ace = np.sum(np.square(flow), axis=-1)
     plt.imshow(ace)
     plt.quiver(flow[:, :, 1], flow[:, :, 0], angles="xy")
-    #plt.show()
-    #save plot in results folder
-    plt.savefig(f'results/flow_{sequence_number}.jpg')
+    # plt.show()
+    # save plot in results folder
+    plt.savefig(f"results/flow_{sequence_number}.jpg")
