@@ -128,7 +128,7 @@ def task_1_2():
     pyflow_hsv = hsv_plot(pyflow_flow)
     farneback_hsv = hsv_plot(farneback_flow)
 
-    fig = plt.figure()
+    plt.figure()
     plt.subplot(211)
     plt.imshow(np.array(pyflow_hsv))
     plt.subplot(212)
