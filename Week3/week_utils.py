@@ -237,12 +237,26 @@ def load_flow_gt(flow_path):
     # Reorder channels
     return np.stack((flow_u, flow_v, flow_valid), axis=2)
 
+
 def hsv_plot(flow):
-    w,h,_ = flow.shape
-    hsv = np.zeros((w,h,3), dtype=np.uint8)
+    w, h, _ = flow.shape
+    hsv = np.zeros((w, h, 3), dtype=np.uint8)
     hsv[..., 1] = 255
     mag, ang = cv2.cartToPolar(flow[..., 0], flow[..., 1])
     hsv[..., 0] = ang * 180 / np.pi / 2
     hsv[..., 2] = cv2.normalize(mag, None, 0, 255, cv2.NORM_MINMAX)
     rgb = cv2.cvtColor(hsv, cv2.COLOR_HSV2RGB)
     return rgb
+
+
+def save_video(images, video_name, fps=30):
+    # Define the codec and create VideoWriter object
+    fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+    out = cv2.VideoWriter(
+        video_name, fourcc, fps, (images[0].shape[1], images[0].shape[0]), True
+    )
+
+    for i in range(len(images)):
+        out.write(images[i].astype(np.uint8))
+
+    out.release()

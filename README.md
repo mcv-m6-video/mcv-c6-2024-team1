@@ -19,3 +19,6 @@ The contents of the first week are in the folder `Week1`.
 
 ## Week 2
 The contents of the first week are in the folder `Week2`. The `README` file for this week can be found in [here](Week2/README.md) 
+
+## Week 3
+The contents of the first week are in the folder `Week3`. The `README` file for this week can be found in [here](Week3/README.md) 

@@ -1,4 +1,5 @@
 import time
+from argparse import ArgumentParser
 
 import cv2
 import matplotlib.pyplot as plt
@@ -7,22 +8,20 @@ import pyflow
 
 from week_utils import compute_flow_metrics, hsv_plot, load_flow_gt
 
-SEQUENCE = "000045"
-
-GT_PATH = f"../Data/data_stereo_flow/training/flow_noc/{SEQUENCE}_10.png"
-DATASET_PATH = f"../Data/data_stereo_flow/training/image_0/{SEQUENCE}"
+GT_PATH = "../Data/data_stereo_flow/training/flow_noc/{}_10.png"
+DATASET_PATH = "../Data/data_stereo_flow/training/image_0/{}"
 
 
 def optical_flow_pyflow(
     im1,
     im2,
-    alpha,
-    ratio,
-    min_width,
-    n_outer_FP_iterations,
-    n_inner_FP_iterations,
-    n_SOR_iterations,
-    col_type,
+    alpha=0.012,
+    ratio=0.5,
+    min_width=20,
+    n_outer_FP_iterations=1,
+    n_inner_FP_iterations=1,
+    n_SOR_iterations=15,
+    col_type=1,
 ):
     start = time.time()
     u, v, _ = pyflow.coarse2fine_flow(
@@ -43,7 +42,15 @@ def optical_flow_pyflow(
 
 
 def optical_flow_farneback(
-    im1, im2, pyr_scale, levels, winsize, iterations, poly_n, poly_sigma, flags
+    im1,
+    im2,
+    pyr_scale=0.5,
+    levels=3,
+    winsize=15,
+    iterations=3,
+    poly_n=5,
+    poly_sigma=1.2,
+    flags=0,
 ):
     start = time.time()
     flow_farneback = cv2.calcOpticalFlowFarneback(
@@ -63,12 +70,14 @@ def optical_flow_farneback(
     return flow_farneback, total_time
 
 
-def task_1_2():
-    # Read images
-    img1 = cv2.imread(DATASET_PATH + "_10.png", cv2.IMREAD_GRAYSCALE)
-    img2 = cv2.imread(DATASET_PATH + "_11.png", cv2.IMREAD_GRAYSCALE)
+def task_1_2(sequence):
+    dataset_path = DATASET_PATH.format(sequence)
+    gt_path = GT_PATH.format(sequence)
+    
+    img1 = cv2.imread(dataset_path + "_10.png", cv2.IMREAD_GRAYSCALE)
+    img2 = cv2.imread(dataset_path + "_11.png", cv2.IMREAD_GRAYSCALE)
 
-    gt = load_flow_gt(GT_PATH)
+    gt = load_flow_gt(gt_path)
     im1 = np.atleast_3d(img1.astype(float) / 255.0)
     im2 = np.atleast_3d(img2.astype(float) / 255.0)
 
@@ -137,4 +146,13 @@ def task_1_2():
 
 
 if __name__ == "__main__":
-    task_1_2()
+    parser = ArgumentParser()
+    parser.add_argument(
+        "--sequence",
+        type=str,
+        default="000045",
+        help="Sequence number",
+    )
+
+    args = parser.parse_args()
+    task_1_2(args.sequence)
