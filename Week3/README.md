@@ -3,7 +3,7 @@
 
 # ➤ Week 3
 
-During the second week of our project, we focused on 
+During the third week of our project, we focused on estimating the optical flow of a video sequence, estimating the optical flow and trying to improve an object tracking algorithm and finally we provided results on data from the CVPR AI City Challenge.
 
 
 
