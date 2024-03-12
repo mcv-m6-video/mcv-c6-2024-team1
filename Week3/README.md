@@ -44,6 +44,12 @@ Where:
   - `--output-path` is the output path for the generated video
 
 ### Task 1.3
+This task can be executed with the following script:
+```python
+python task1_3.py 
+```
+Run `python task1_3.py -h` to check the setable parameters for this script.
+Disclaimer: this scripts runs tracking given a json object detection prediction file with YOLO style.
 
 ### Task 2.1
 
