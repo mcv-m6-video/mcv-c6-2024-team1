@@ -1,10 +1,14 @@
 Data/**
 **/__pycache__
 **/*.mp4
+**/*.avi
 **/.idea
 **/.DS_Store
 **/video_frames
 **/yolov5s.pt
 .vscode/
 config/**
-Week2/results/*.avi
+Week2/results/
+Week3/results/
+c6/
+
