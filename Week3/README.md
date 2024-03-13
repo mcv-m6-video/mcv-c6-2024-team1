@@ -36,7 +36,7 @@ Where `sequence` is the sequence that we want to compute the optical flow from. 
 
 Additionally, there is another script, that generates a video of the optical flow generated from a given input video. It can be run the following way:
 ```bash
-  python optical_flow_video.py [--flow-method FLOW_METHOD] [--input-path INPUT_PATH] [--output-path OUTPUT_PATH]
+python optical_flow_video.py [--flow-method FLOW_METHOD] [--input-path INPUT_PATH] [--output-path OUTPUT_PATH]
 ```
 Where:
   - `--flow-method` is the method used (either `pyflow` or `farneback`)
@@ -44,6 +44,21 @@ Where:
   - `--output-path` is the output path for the generated video
 
 ### Task 1.3
+This task can be executed with the following script:
+```python
+python task1_3.py [--predictions-file PREDICTIONS_FILE] [--tracking-file TRACKING_FILE] [--video-path VIDEO_PATH]
+                  [--visualization-path VISUALIZATION_PATH] [--visualize-video VISUALIZE_VIDEO] [--flow-method FLOW_METHOD]
+                  [--bbx-flow-method BBX_FLOW_METHOD]
+```
+Where:
+  - `--predictions-file` is the name of prediction json file (YOLO style)
+  - `--tracking-file` is the name of output file
+  - `--video-path` is the path to video for visualization
+  - `--visualization-path` is the path to save visualization video
+  - `--visualize-video` is a bool to visualize video on execution
+  - `--flow-method` is the optical flow method
+  - `--bbx-flow-method` is the method to shift the bounding boxes from the optical flow
+> Disclaimer: this scripts runs tracking given a json object detection prediction file with YOLO style.
 
 ### Task 2.1
 

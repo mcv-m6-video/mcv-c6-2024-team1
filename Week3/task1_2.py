@@ -136,12 +136,15 @@ def task_1_2(sequence):
 
     pyflow_hsv = hsv_plot(pyflow_flow)
     farneback_hsv = hsv_plot(farneback_flow)
+    gt_hsv = hsv_plot(gt)
 
     plt.figure()
-    plt.subplot(211)
+    plt.subplot(311)
     plt.imshow(np.array(pyflow_hsv))
-    plt.subplot(212)
+    plt.subplot(312)
     plt.imshow(np.array(farneback_hsv))
+    plt.subplot(313)
+    plt.imshow(np.array(gt_hsv))
     plt.show()
 
 

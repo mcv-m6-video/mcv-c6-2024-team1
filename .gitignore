@@ -1,6 +1,7 @@
 Data/**
 **/__pycache__
 **/*.mp4
+**/*.avi
 **/.idea
 **/.DS_Store
 **/video_frames
