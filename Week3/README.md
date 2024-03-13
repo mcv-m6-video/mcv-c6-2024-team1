@@ -69,12 +69,26 @@ Where:
   - `--bbx-flow-method` is the method to shift the bounding boxes from the optical flow
 > Disclaimer: this scripts runs tracking given a json object detection prediction file with YOLO style.
 
-### Task 2.1
+### Task 2
 
-### Task 2.2
+The set-up for the TrackEval benchmark can be sped up through the use of the following scripts.
 
-### Task 2.3
+First run
+```python
+python createtrack1folders.py 
+```
+to create the gt aicity19 benchmarks with the appropiate ground truth folders for each sequence.
 
+Then create the challenge folder `aicity19-train`. The following script creates the tracker folder and populates it with the prediction files outputted by the task 1.3 script
+```python
+python convert_to_trackeval.py 
+```
+Warning: json files are expected at the directory `Week3/trackings`
+
+Finally run the evaluation
+```python
+python task2.py --GT_FOLDER .\TrackEval\data\gt\mot_challenge\ --TRACKERS_FOLDER .\TrackEval\data\trackers\mot_challenge\ --BENCHMARK aicity19 --METRICS HOTA Identity --DO_PREPROC False --TRACKERS_TO_EVAL farnebackmedian
+```
 
 
 [![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/colored.png)](#requirements)
