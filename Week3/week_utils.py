@@ -233,7 +233,6 @@ def load_flow_gt(flow_path):
     # Set to 0 the points where the flow is not valid
     flow_u[~flow_valid] = 0
     flow_v[~flow_valid] = 0
-
     # Reorder channels
     return np.stack((flow_u, flow_v, flow_valid), axis=2)
 
