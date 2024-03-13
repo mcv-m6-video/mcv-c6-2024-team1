@@ -84,3 +84,19 @@ def visualize_direction_idx_plot(im1_path: str, flow, filename):
     plt.savefig(f'./results/{filename}_direction.png', dpi=300, bbox_inches='tight')
     plt.close()
 
+def plotArrowsOP_save(flow_img, step, path):
+    img = plt.imread(path)
+    #flow_img = cv2.resize(flow_img, (0, 0), fx=1. / step, fy=1. / step)
+    u = flow_img[:, :, 0]
+    v = flow_img[:, :, 1]
+    x = np.arange(0, np.shape(flow_img)[0] * step, step)
+    y = np.arange(0, np.shape(flow_img)[1] * step, step)
+    U, V = np.meshgrid(y, x)
+    M = np.hypot(u, v)
+    plt.quiver(U, V, u, -v, M, color='g')
+    plt.imshow(img, alpha=0.5, cmap='gray')
+    plt.title('Orientation OF')
+    plt.xticks([])
+    plt.yticks([])
+    #plt.show()
+    plt.savefig('results/plotArrowsOP.jpg')

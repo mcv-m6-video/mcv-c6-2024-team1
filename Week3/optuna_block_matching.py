@@ -25,15 +25,14 @@ distance_options = list(distances_dict.keys())
 
 def objective(trial: optuna.Trial):
 
-    block_size = trial.suggest_int("block_size", 1, 140)
+    block_size = trial.suggest_int("block_size", 1, 180)
     # search area must be greater than block size
-    search_area = trial.suggest_int("search_area", block_size+1, 150)
-    # suggest one of the distances
+    search_area = trial.suggest_int("search_area", block_size+1, 200)
     distance = trial.suggest_categorical("distance", [
         "ssd",
         "sad",
         "ncc"
-    ])  # Pass options directly
+    ])
     selected_dist = distances_dict[distance]
     direction = trial.suggest_categorical("direction", [
         "forward",

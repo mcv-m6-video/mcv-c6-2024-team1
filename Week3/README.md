@@ -26,7 +26,16 @@ During the third week of our project, we focused on estimating the optical flow 
 
 ## ➤ Usage
 ### Task 1.1
-
+In this task we compute the optical flow using the block matching method. The main objective of the task can be performed using script `task1_1.py`, which can be run the following way:
+```bash
+  python task1_1.py [--sequence SEQUENCE] [--block-size BLOCK_SIZE] [--search-area SEARCH_AREA] [--metric METRIC] [--direction DIRECTION] [--max-level MAX_LEVEL]
+```
+Where `--sequence` is the sequence that we want to compute the optical flow from. By default, the sequence is `45`. The rest of the input parameters are the following:
+  - `--block-size` is the size of the block used for the block matching method. By default, the block size is `16`.
+  - `--search-area` is the size of the search area used for the block matching method. By default, the search area is `20`.
+  - `--metric` is the metric used for the block matching method. By default, the metric is `sad` (Sum of Absolute Differences). Can also be `ssd`(Sum of Squared Differences) and `ncc`(Normalized Cross Correlation Coefficient).
+  - `--direction` is the direction of the optical flow. By default, the direction is `forward`.
+  - `--max-level` is the maximum level of the pyramid used for the block matching method. By default, the maximum level is `3`.
 ### Task 1.2
 The main objective of the task can be performed using script `task1_2.py`, which can be run the following way:
 ```bash
