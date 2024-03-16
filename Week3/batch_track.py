@@ -12,5 +12,5 @@ for bbx_path in Path(bbxs_root).glob("*.json"):
             "--predictions-file", bbx_path,
             "--tracking-file", f"bbxs_clean_{sequence}_{camera}_tracked.json",
             "--video-path", Path(sequences_root) / sequence / camera / "vdo.avi",
-            "--visualization-path", "",
-            "--visualize-video", "False"])
+            "--visualization-path", f"tracking_{sequence}_{camera}.avi",
+            "--visualize-video", "True"])
