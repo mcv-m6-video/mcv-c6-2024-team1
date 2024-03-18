@@ -18,7 +18,10 @@ The goal of this project is to learn the basic concepts and techniques related t
 The contents of the first week are in the folder `Week1`.
 
 ## Week 2
-The contents of the first week are in the folder `Week2`. The `README` file for this week can be found in [here](Week2/README.md) 
+The contents of the second week are in the folder `Week2`. The `README` file for this week can be found in [here](Week2/README.md) 
 
 ## Week 3
-The contents of the first week are in the folder `Week3`. The `README` file for this week can be found in [here](Week3/README.md) 
+The contents of the third week are in the folder `Week3`. The `README` file for this week can be found in [here](Week3/README.md) 
+
+## Week 4
+The contents of the fourth week are in the folder `Week4`. The `README` file for this week can be found in [here](Week4/README.md) 
