@@ -11,7 +11,7 @@ During the fourth week of our project, we focused on estimating the speed of veh
 
 * **Task 1**: Estimate the speed of vehicles using visual cues
   * **Task 1.1**: Speed estimation
-  * * **Task 1.2**: Speed estimation with our data
+  * **Task 1.2**: Speed estimation with our data
 * **Task 2**: Multi-camera tracking
 
 
