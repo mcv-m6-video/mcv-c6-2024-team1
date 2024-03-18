@@ -100,11 +100,12 @@ class KalmanSpeed:
 
     def calculate_speed(self, tracker_id):
         # Wait to have enough data
-        if len(self.coordinates[tracker_id]) > video_info.fps / 2:
+        if len(self.coordinates[tracker_id]) > video_info.fps / 2: #  if we have at least 0.5 seconds of data
             # Calculate the speed
-            coordinate_start = self.coordinates[tracker_id][-1]
-            coordinate_end = self.coordinates[tracker_id][0]
-            distance = abs(coordinate_start - coordinate_end)
+            coordinate_start = self.coordinates[tracker_id][-1]  # tuple
+            coordinate_end = self.coordinates[tracker_id][0]  # tuple
+            # compute distance between the first and last coordinates (tuples)
+            distance = np.sqrt((coordinate_end[0] - coordinate_start[0]) ** 2 + (coordinate_end[1] - coordinate_start[1]) ** 2)
             time = len(self.coordinates[tracker_id]) / video_info.fps
             speed = distance / time * 3.6
             return speed
@@ -120,13 +121,24 @@ class KalmanSpeed:
 
             # Get centroid of the bounding box
             centroid = get_centroid(convert_x_to_bbox(track.kf.x))
+            inside = centroid[0] > 580 and centroid[0] < 1110 and centroid[1] > 200 and centroid[1] < 1050
+            old_centroid = centroid
 
             # Transform centroid using ViewTransformer
             if self.view_transformer:
-                transformed_centroid = self.view_transformer.transform_points(np.array([[centroid[0], centroid[1]]]))
-                centroid = tuple(transformed_centroid.squeeze().astype(int))
+                # Check if centroid is within the source zone
+                if inside:
+                    transformed_centroid = self.view_transformer.transform_points(
+                        np.array([[centroid[0], centroid[1]]]))
+                    centroid = tuple(transformed_centroid.squeeze())
+                    self.coordinates[track.id].append(centroid)
+                else:
+                    # Centroid not in source region
+                    pass
+
             # add the centroid as coordinate of the track id to calculate the speed
-            self.coordinates[track.id].append(centroid[0])
+            self.coordinates[track.id].append(centroid)
+
             box = convert_x_to_bbox(track.kf.x).squeeze()
             # Draw Bounding Box
             img_draw = cv2.rectangle(
@@ -144,10 +156,21 @@ class KalmanSpeed:
                 track.visualization_color,
                 -1,
             )
-            # Write Text with speed
+            # Write Text with speed if in source zone, otherwise only write ID
             speed = self.calculate_speed(track.id)
-            if speed is not None:
-                text = f"{track.id} {speed:.2f} km/h"
+            if speed is not None and inside:
+                text = f"{track.id} {speed:.2f} km/h" if speed > 0 else f"{track.id}"
+                img_draw = cv2.putText(
+                    img_draw,
+                    text,
+                    (int(box[0]), int(box[1])),
+                    cv2.FONT_HERSHEY_DUPLEX,
+                    1,
+                    (0, 0, 0),
+                    2,
+                )
+            else:
+                text = f"{track.id}"
                 img_draw = cv2.putText(
                     img_draw,
                     text,
@@ -255,8 +278,8 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    source = np.array([[580, 200], [1110, 200], [110, 1050], [1800, 1050]])
-    target = np.array([[0, 0], [8, 0], [0, 25], [8, 25]])
+    source = np.array([[550, 150], [1100, 150], [100, 1050], [1900, 1050]])
+    target = np.array([[0, 0], [15, 0], [0, 200], [15, 200]])
     vt = ViewTransformer(source, target)
     kalmanSpeedTracking = KalmanSpeed(max_age=args.max_age, iou_threshold=args.thr, view_transformer=vt)
 
