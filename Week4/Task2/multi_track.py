@@ -42,21 +42,6 @@ class KalmanFilter:
             frames_boxes = json.load(file)
         return frames_boxes
     
-    def fill_missing_frames(self, data_dicts, num_frames):
-        # Extracting existing frame numbers
-        existing_frames = {int(d['frame']) for d in data_dicts if 'frame' in d}
-        
-        # Generating empty dictionaries for missing frames
-        missing_frames = [{} for _ in range(1, num_frames + 1) if _ not in existing_frames]
-        
-        # Removing 'frame' key from dictionaries containing frame information
-        for d in data_dicts:
-            if 'frame' in d:
-                del d['frame']
-    
-        # Combining dictionaries with missing frames and dictionaries with frame information
-        return missing_frames + data_dicts
-    
     def read_boxes_from_csv_file(self, file_path, num_frames):
         with open(file_path, newline='') as gtfile:
             csv_reader = csv.reader(gtfile)
@@ -67,13 +52,14 @@ class KalmanFilter:
                 # Accessing each value in the row
                 # Don't take into account ID
                 frame, _, left, top, width, height, _, _, _, _ = map(int, row)
+                frame -= 1 # starts at 1
 
                 if frame not in csv_boxes:
                     csv_boxes[frame] = {"xmin": [], "xmax": [], "ymin": [], "ymax": [], "confidence": []}
 
                 csv_boxes[frame]["xmin"].append(left)
-                csv_boxes[frame]["xmax"].append(top)
-                csv_boxes[frame]["ymin"].append(left + width)
+                csv_boxes[frame]["ymin"].append(top)
+                csv_boxes[frame]["xmax"].append(left + width)
                 csv_boxes[frame]["ymax"].append(top + height)
                 csv_boxes[frame]["confidence"].append(1) # GT
 
@@ -109,6 +95,8 @@ class KalmanFilter:
         detected_bboxes = self.convert_to_array(detected_bbox)
 
         # Predict
+        if len(detected_bboxes) == 0:
+            detected_bboxes = np.empty((0, 5))
         actual_tracks = self.kalman_tracker.update(detected_bboxes)
 
         # Save
@@ -213,17 +201,17 @@ class KalmanFilter:
         #        output_video_filename, codec, fps, (frame_width, frame_height)
         #    )
 
-        num_frame = 0
-        while True:
+        for num_frame in tqdm(range(n_frames), desc="Tracking bounding boxes"):
             ret, frame_img = cap.read()
             if not ret:
                 break
 
             # Predict
             self.update(frame_boxes[num_frame])
-                
+
             # Draw
-            img_draw = self.draw_tracking_result(frame_img)
+            if vizualize or generate_video:
+                img_draw = self.draw_tracking_result(frame_img)
 
             if vizualize:
                 cv2.imshow(
@@ -238,8 +226,6 @@ class KalmanFilter:
 
             # if generate_video:
             #     out.write(img_draw)
-
-            num_frame += 1
 
         save_json(self.kalman_tracker_dict, results_path + file_out + ".json")
 
@@ -267,7 +253,7 @@ def main():
                 video_path=video_file,
                 results_path=RESULTS_PATH,
                 file_in=gt_file,
-                file_out=FILE_OUT + c_dir,
+                file_out=FILE_OUT + '_' + c_dir,
                 generate_video=False,
                 vizualize=False,
             )
