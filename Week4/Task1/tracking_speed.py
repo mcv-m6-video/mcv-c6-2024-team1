@@ -162,7 +162,7 @@ class KalmanSpeed:
 
             box = convert_x_to_bbox(track.kf.x).squeeze()
             speed = self.calculate_speed(track.id, count_speed)
-            if count_speed[track.id] > self.stop_threshold:
+            if count_speed[track.id] > self.stop_threshold or not inside:
                 continue
 
             # Draw Bounding Box
@@ -183,7 +183,7 @@ class KalmanSpeed:
             )
             # Write Text with speed if in source zone, otherwise only write ID
 
-            if speed is not None and inside:
+            if speed is not None:
                 text = f"{track.id} {speed:.2f} km/h" if speed > 0 else f"{track.id}"
                 img_draw = cv2.putText(
                     img_draw,
