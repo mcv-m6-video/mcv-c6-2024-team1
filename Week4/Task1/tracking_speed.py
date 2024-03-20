@@ -126,7 +126,7 @@ class KalmanSpeed:
             return speed
         return None
 
-    def draw_tracking_result(self, frame_img, count_speed):
+    def draw_tracking_result(self, frame_img, count_speed, corners):
         img_draw = frame_img.copy()
 
         for track in self.kalman_tracker.trackers:
@@ -138,10 +138,10 @@ class KalmanSpeed:
             # Get centroid of the bounding box
             centroid = get_centroid(convert_x_to_bbox(track.kf.x))
             inside = (
-                centroid[0] > 580
-                and centroid[0] < 1110
-                and centroid[1] > 200
-                and centroid[1] < 1050
+                centroid[0] > corners[0]
+                and centroid[0] < corners[1]
+                and centroid[1] > corners[2]
+                and centroid[1] < corners[3]
             )
 
             # Transform centroid using ViewTransformer
@@ -209,7 +209,7 @@ class KalmanSpeed:
             for detection in track.history:
                 detection_center = get_centroid(detection)
                 img_draw = cv2.circle(
-                    img_draw, detection_center, 5, track.visualization_color, -1
+                    img_draw, detection_center, 3, track.visualization_color, -1
                 )
 
         return img_draw
@@ -222,6 +222,7 @@ class KalmanSpeed:
         file_out: str = DEFAULT_FILE_OUT,
         generate_video: bool = True,
         vizualize: bool = True,
+        corners: list = None
     ):
 
         frame_boxes = self.read_boxes_from_file(results_path + file_in)
@@ -249,7 +250,7 @@ class KalmanSpeed:
             # Predict
             self.update(frame_boxes[num_frame])
             # Draw
-            img_draw = self.draw_tracking_result(frame_img, count_speed)
+            img_draw = self.draw_tracking_result(frame_img, count_speed, corners)
 
             if vizualize:
                 cv2.imshow(
@@ -267,7 +268,7 @@ class KalmanSpeed:
 
             num_frame += 1
 
-        save_json(self.kalman_tracker_dict, results_path + file_out + ".json")
+        #save_json(self.kalman_tracker_dict, results_path + file_out + ".json")
 
 
 if __name__ == "__main__":
@@ -329,6 +330,13 @@ if __name__ == "__main__":
 
     source = np.array([[550, 150], [1100, 150], [100, 1050], [1900, 1050]])
     target = np.array([[0, 0], [15, 0], [0, 200], [15, 200]])
+    # source = np.array([[510, 300], [770, 300], [40, 600], [1200, 600]])
+    # target = np.array([[0, 0], [40, 0], [0, 450], [40, 450]])
+    # source = np.array([[770, 720], [1000, 720], [570, 1000], [1120, 1000]])
+    # target = np.array([[0, 0], [8, 0], [0, 150], [8, 150]])
+
+    # get tl, tr, bl, br from source
+    corners = [source[0][0], source[1][0], source[2][0], source[3][0]]
     vt = ViewTransformer(source, target)
     kalmanSpeedTracking = KalmanSpeed(
         max_age=args.max_age,
@@ -345,6 +353,7 @@ if __name__ == "__main__":
         file_out=args.o_name,
         generate_video=args.store,
         vizualize=args.vizualize,
+        corners=corners
     )
 
 # python3 tracking_speed.py --store --vizualize --o_name kalman_tracking_vdo --detections bbxs_clean_tracked.json
