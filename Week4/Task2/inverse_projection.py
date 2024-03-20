@@ -1,14 +1,15 @@
 from pathlib import Path
 import itertools
 import pickle
-from Week4.Task2.syn_cam import *
 import numpy as np
 from numpy.typing import ArrayLike
 import cv2
 import matplotlib.cm as cm
 import torch
 
-from mot import *
+from syn_cam import *
+from mot.tracklet import Tracklet
+
 
 def read_corners(path):
     with open(path) as f:
@@ -93,14 +94,14 @@ if __name__ == "__main__":
     sequence_name = "S03"
     camera_names = ["c010", "c011", "c012", "c013", "c014", "c015"]
 
-    bg_image_path = f"/Users/anna/Desktop/mcv-c6-2024-team1/Week4/VisualizationData/{sequence_name}/bg.png"
+    bg_image_path = f"./Week4/VisualizationData/{sequence_name}/bg.png"
     # Write top left and bottom right GPS coordinates of the image in 2 lines
-    corners_path = f"/Users/anna/Desktop/mcv-c6-2024-team1/Week4/VisualizationData/{sequence_name}/corners.txt"
+    corners_path = f"./Week4/VisualizationData/{sequence_name}/corners.txt"
     tl_corner, br_corner = read_corners(corners_path)
     visualization = PositionalMultiCameraTrack(tl_corner, br_corner, bg_image_path, offset=(0.0002, 0.0005))
     
     for i, name in enumerate(camera_names):
-        calibration_path = f"../Data/train/{sequence_name}/{name}/calibration.txt"
+        calibration_path = f"./Data/aic19-track1-mtmc-train/train/{sequence_name}/{name}/calibration.txt"
         visualization.add_camera(i, read_calibration(calibration_path))
 
     for i, point in enumerate(itertools.product([0, 1920], np.linspace(200, 1920, num=40))):
@@ -117,6 +118,3 @@ if __name__ == "__main__":
     device = "cuda" if torch.cuda.is_available() else "cpu"
     f.to(device)
     sim = torch.matmul(f, f.T).cpu().numpy()
-
-    #generate candidates 
-    for i in range(all_tracks)
