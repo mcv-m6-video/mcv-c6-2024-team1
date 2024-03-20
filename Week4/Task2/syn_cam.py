@@ -8,7 +8,7 @@ def load_pickle(pth: str):
         res = pickle.load(f)
     return res
 
-FOLDER_PATH = './Data/aic19-track1-mtmc-train/train/S03/'
+FOLDER_PATH = './Data/train/S03/'
 OFFSETS = {'c010': 8.715,
 'c011': 8.457,
 'c012': 5.879,
@@ -45,7 +45,7 @@ class Camera():
     def __init__(self,file_path: str,  offset:float):
         print(file_path)
         self.video = cv2.VideoCapture(FOLDER_PATH+file_path+'/vdo.avi')
-        self.tracks = load_pickle('./Week4/outputs/'+file_path+'/mot.pkl')
+        self.tracks = load_pickle('../outputs/'+file_path+'/mot.pkl')
         #self.calibration
         self.offset = offset
         self.fps = self.video.get(cv2.CAP_PROP_FPS)
