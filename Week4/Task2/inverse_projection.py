@@ -10,11 +10,14 @@ from typing import List
 import heapq
 import random
 import os
+import pandas as pd
 
 from syn_cam import *
 from mot.tracklet import Tracklet
 
 MTMC_TRACKLETS_NAME = "mtmc_tracklets"
+OUTPUT_DIR = '../results'
+PICKLED_TRACKLETS = ['pickle_tracklet']
 
 class MultiCameraTracklet:
     def __init__(self, new_id, tracks: List[Tracklet] = []) -> None:
@@ -31,6 +34,7 @@ class MultiCameraTracklet:
         for track in mtrack.tracks:
             self.cams.append(track.cam)
         self.cams = list(set(self.cams))
+        self.n_cams = len(self.cams)
 
 
 def multicam_track_similarity(mtrack1: MultiCameraTracklet, mtrack2: MultiCameraTracklet, linkage: str,
@@ -161,6 +165,107 @@ def check_cameras(t1, t2):
     return False
 
 
+def get_tracks_by_cams(multicam_tracks: List[MultiCameraTracklet]) -> List[List[Tracklet]]:
+    """Return multicam tracklets sorted by cameras."""
+    if len(multicam_tracks) == 0:
+        return []
+    tracks_per_cam = [[] for _ in range(len(multicam_tracks[0].cams))]
+    for mtrack in multicam_tracks:
+        for track in mtrack.tracks:
+            tracks_per_cam[track.cam].append(track)
+    return tracks_per_cam
+
+def save_tracklets(tracklets, path, max_features=None):
+    """Saves tracklets using pickle (with re-id features)"""
+    if max_features is not None:
+        for tracklet in tracklets:
+            tracklet.cluster_features(max_features)
+    with open(path, "wb") as fp:
+        pickle.dump(tracklets, fp, protocol=pickle.HIGHEST_PROTOCOL)
+
+def to_detections(tracklets):
+    res = {
+        "frame": [],
+        "bbox_topleft_x": [],
+        "bbox_topleft_y": [],
+        "bbox_width": [],
+        "bbox_height": [],
+        "track_id": [],
+    }
+    if len(tracklets) == 0:
+        return res
+
+    for k in tracklets[0].static_attributes:
+        res[k] = []
+    for k in tracklets[0].dynamic_attributes:
+        res[k] = []
+    if tracklets[0].zones:
+        res["zone"] = []
+
+    for tracklet in tracklets:
+        res["frame"].extend(tracklet.frames)
+        for x, y, w, h in tracklet.bboxes:
+            res["bbox_topleft_x"].append(int(x))
+            res["bbox_topleft_y"].append(int(y))
+            res["bbox_width"].append(int(round(w)))
+            res["bbox_height"].append(int(round(h)))
+        res["track_id"].extend([tracklet.track_id] * len(tracklet.frames))
+        for static_f, val in tracklet.static_attributes.items():
+            values = val if isinstance(val, list) else [
+                val] * len(tracklet.frames)
+            res[static_f].extend(values)
+        for dynamic_f, val in tracklet.dynamic_attributes.items():
+            res[dynamic_f].extend(val)
+        if tracklet.zones:
+            res["zone"].extend(tracklet.zones)
+
+    # all columns should have the same length
+    lengths = list(map(len, res.values()))
+    lengths_equal = list(map(lambda l: l == lengths[0], lengths))
+    if not all(lengths_equal):
+        for k, v in res.items():
+            print(f"Items in column {k}: {len(v)}")
+        raise ValueError("Error: not all column lengths are equal.")
+
+    return res
+
+def save_tracklets_csv(tracklets, path):
+    """Save tracklets as detections in a csv format (with attributes and zones)"""
+    res = to_detections(tracklets)
+    df = pd.DataFrame(res)
+    df.to_csv(path, index=False)
+
+
+def save_tracklets_txt(tracklets, path):
+    """Save tracklets as detections in the MOTChallenge format"""
+    res = to_detections(tracklets)
+    res["frame"] = list(map(lambda x: x + 1, res["frame"]))
+    df = pd.DataFrame(res)
+    df = df[["frame", "track_id", "bbox_topleft_x", "bbox_topleft_y", "bbox_width", "bbox_height"]]
+    df["conf"] = 1
+    df["x"] = -1
+    df["y"] = -1
+    df["z"] = -1
+    df.to_csv(path, index=False, header=False)
+
+def save_tracklets_per_cam(multicam_tracks: List[MultiCameraTracklet], save_paths_per_cam: List[str]):
+    tracks_per_cam = get_tracks_by_cams(multicam_tracks)
+    for tracks, path in zip(tracks_per_cam, save_paths_per_cam):
+        save_tracklets(tracks, path)
+
+
+def save_tracklets_csv_per_cam(multicam_tracks: List[MultiCameraTracklet], save_paths_per_cam: List[str]):
+    tracks_per_cam = get_tracks_by_cams(multicam_tracks)
+    for tracks, path in zip(tracks_per_cam, save_paths_per_cam):
+        save_tracklets_csv(tracks, path)
+
+
+def save_tracklets_txt_per_cam(multicam_tracks: List[MultiCameraTracklet], save_paths_per_cam: List[str]):
+    tracks_per_cam = get_tracks_by_cams(multicam_tracks)
+    for tracks, path in zip(tracks_per_cam, save_paths_per_cam):
+        save_tracklets_txt(tracks, path)
+
+
 if __name__ == "__main__":
     sequence_name = "S03"
     camera_names = ["c010", "c011", "c012", "c013", "c014", "c015"]
@@ -244,12 +349,17 @@ if __name__ == "__main__":
     for i, mtrack in enumerate(mtracks):
         mtrack.id = i
 
-    
-    #mtmc_pickle_path = os.path.join(cfg.OUTPUT_DIR, f"{MTMC_TRACKLETS_NAME}.pkl")
-    #with open(mtmc_pickle_path, "wb") as f:
-    #    pickle.dump(multicam_tracks, f, pickle.HIGHEST_PROTOCOL)
-    #log.info("MTMC result (%s tracks) saved to: %s",
-    #         len(multicam_tracks), mtmc_pickle_path)
+    # save per camera results
+    pkl_paths = []
+    for i, pkl_path in enumerate(PICKLED_TRACKLETS):
+        mtmc_pkl_path = os.path.join(OUTPUT_DIR, f"{i}_{os.path.split(pkl_path)[1]}")
+        pkl_paths.append(mtmc_pkl_path)
+    csv_paths = [pth.split(".")[0] + ".csv" for pth in pkl_paths]
+    txt_paths = [pth.split(".")[0] + ".txt" for pth in pkl_paths]
+
+    save_tracklets_per_cam(mtracks, pkl_paths)
+    save_tracklets_csv_per_cam(mtracks, csv_paths)
+    save_tracklets_txt_per_cam(mtracks, txt_paths)
 
     print(len(mtracks))
     print(len(all_tracks))
