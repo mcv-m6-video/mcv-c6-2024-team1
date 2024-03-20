@@ -11,3 +11,5 @@ config/**
 Week2/results/
 Week3/results/
 c6/
+Task2/vehicle_mtmc
+*.pkl
