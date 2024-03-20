@@ -1,11 +1,14 @@
 from pathlib import Path
 import itertools
 import pickle
-
+from Week4.Task2.syn_cam import *
 import numpy as np
 from numpy.typing import ArrayLike
 import cv2
 import matplotlib.cm as cm
+import torch
+
+from mot import *
 
 def read_corners(path):
     with open(path) as f:
@@ -19,6 +22,8 @@ def read_calibration(path):
         text = f.readlines()[0]
     matrix = np.array([[float(num) for num in row.split()] for row in text.split(";")])
     return matrix
+
+
 
 class PositionalMultiCameraTrack:
     def __init__(self, tl_coords: ArrayLike | tuple[float, float], br_coords: ArrayLike | tuple[float, float], image_path: Path | str, offset: ArrayLike | tuple[float, float] = (0, 0)):
@@ -88,23 +93,30 @@ if __name__ == "__main__":
     sequence_name = "S03"
     camera_names = ["c010", "c011", "c012", "c013", "c014", "c015"]
 
-    bg_image_path = f"./Week4/VisualizationData/{sequence_name}/bg.png"
+    bg_image_path = f"/Users/anna/Desktop/mcv-c6-2024-team1/Week4/VisualizationData/{sequence_name}/bg.png"
     # Write top left and bottom right GPS coordinates of the image in 2 lines
-    corners_path = f"./Week4/VisualizationData/{sequence_name}/corners.txt"
+    corners_path = f"/Users/anna/Desktop/mcv-c6-2024-team1/Week4/VisualizationData/{sequence_name}/corners.txt"
     tl_corner, br_corner = read_corners(corners_path)
     visualization = PositionalMultiCameraTrack(tl_corner, br_corner, bg_image_path, offset=(0.0002, 0.0005))
     
     for i, name in enumerate(camera_names):
-        calibration_path = f"./Data/aic19-track1-mtmc-train/train/{sequence_name}/{name}/calibration.txt"
+        calibration_path = f"../Data/train/{sequence_name}/{name}/calibration.txt"
         visualization.add_camera(i, read_calibration(calibration_path))
 
     for i, point in enumerate(itertools.product([0, 1920], np.linspace(200, 1920, num=40))):
         for j in range(len(camera_names)):
             visualization.add_object(f"cam{j}b_{i}", j, point)
-            visualization.plot(False)
-    visualization.plot(False)
-    cv2.waitKey(0)
+            #visualization.plot(False)
+    #visualization.plot(False)
+    #cv2.waitKey(0)
     
-    pkl_path = "./Week4/Task2/tracking_output/c010/mot.pkl"
-    #with open(pkl_path, "rb") as f:
-    #    data = pickle.re
+    all_tracks, t_compa , global_frames = syncronize_trackers()
+
+     # precompute similarities between tracks
+    f = torch.Tensor(np.stack([tr.mean_feature for tr in all_tracks]))
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    f.to(device)
+    sim = torch.matmul(f, f.T).cpu().numpy()
+
+    #generate candidates 
+    for i in range(all_tracks)
