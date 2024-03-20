@@ -24,6 +24,11 @@ def read_calibration(path):
     matrix = np.array([[float(num) for num in row.split()] for row in text.split(";")])
     return matrix
 
+class MultiCameraTracklet:
+
+    def __init__(self, new_id, tracks: list[int | str] = []) -> None:
+        self_id = new_id
+        self.tracks = tracks
 
 
 class PositionalMultiCameraTrack:
@@ -49,6 +54,8 @@ class PositionalMultiCameraTrack:
             raise ValueError(f"Camera with id {id} already exists.")
         self.cameras[id] = np.linalg.inv(calibration)
     
+
+
     def add_object(self, id: int, camera_id: int, pixel_position: ArrayLike | tuple[float, float]):
         if id in self.objects:
             raise ValueError(f"Object with id {id} already exists.")
@@ -59,6 +66,8 @@ class PositionalMultiCameraTrack:
         #print(world_homo)
         self.objects[id] = world_homo[:2] / world_homo[2]
         #print(self.objects[id])
+    
+
     
     def plot(self, show_image = True):
         print("Plotting:")
