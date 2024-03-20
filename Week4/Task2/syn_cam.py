@@ -1,6 +1,7 @@
 import pickle
 import numpy as np
 import cv2
+from pathlib import Path
 
 def load_pickle(pth: str):
     """Load a pickled tracklet file."""
@@ -8,7 +9,8 @@ def load_pickle(pth: str):
         res = pickle.load(f)
     return res
 
-FOLDER_PATH = './Data/train/S03/'
+FOLDER_PATH = './Data/aic19-track1-mtmc-train/train/S03/'
+OUTPUTS_FOLDER = './Week4/outputs/'
 OFFSETS = {'c010': 8.715,
 'c011': 8.457,
 'c012': 5.879,
@@ -40,21 +42,19 @@ def is_compatible(track1,track2, dtmin:int=-150,dtmax:int=150):
     return False
 
 
-CAMERAS = ['c010','c011','c012','c013','c014','c015']
 class Camera():
-    def __init__(self,file_path: str,  offset:float):
-        print(file_path)
-        self.video = cv2.VideoCapture(FOLDER_PATH+file_path+'/vdo.avi')
-        self.tracks = load_pickle('../outputs/'+file_path+'/mot.pkl')
+    def __init__(self,camera_name: str,  offset:float):
+        self.video = cv2.VideoCapture(str(Path(FOLDER_PATH) / camera_name / 'vdo.avi'))
+        self.tracks = load_pickle(Path(OUTPUTS_FOLDER) / camera_name / 'mot.pkl')
         #self.calibration
         self.offset = offset
         self.fps = self.video.get(cv2.CAP_PROP_FPS)
         self.start_frame = int( self.offset * self.fps )
 
 
-def syncronize_trackers():
+def syncronize_trackers(cameras: list[str]):
 
-    cameras = [Camera(name, OFFSETS[name]) for name in CAMERAS]
+    cameras = [Camera(name, OFFSETS[name]) for name in cameras]
     mini = min(OFFSETS.values())
     fps_minimum_OFFSET = next(cam.fps for cam in cameras if cam.offset == mini)
 
@@ -63,7 +63,7 @@ def syncronize_trackers():
     for i, cam_tracks in enumerate(cameras):
         for track in cam_tracks.tracks: 
             track.cam = i
-            track.idx = len(all_tracks)
+            track.track_id = len(all_tracks)
             track.global_start = int(( track.frames[0] / cam_tracks.fps + cam_tracks.offset)*fps_minimum_OFFSET)
             track.global_end = int((track.frames[-1] / cam_tracks.fps + cam_tracks.offset)*fps_minimum_OFFSET)
             all_tracks.append(track)

@@ -137,21 +137,25 @@ class KalmanSpeed:
 
             # Get centroid of the bounding box
             centroid = get_centroid(convert_x_to_bbox(track.kf.x))
-
-            inside = False
+            inside = (
+                centroid[0] > corners[0]
+                and centroid[0] < corners[1]
+                and centroid[1] > corners[2]
+                and centroid[1] < corners[3]
+            )
 
             # Transform centroid using ViewTransformer
             if self.view_transformer:
                 # Check if centroid is within the source zone
-                transformed_centroid = self.view_transformer.transform_points(
-                    np.array([[centroid[0], centroid[1]]])
-                )
-                centroid = tuple(transformed_centroid.squeeze())
-                self.coordinates[track.id].append(centroid)
-                print("CORNERS", corners)
-                print("CENTROID", centroid)
-                inside = (corners[0] < centroid[0] < corners[1] and corners[2] < centroid[1] < corners[3])
-                print("INSIDE", inside)
+                if inside:
+                    transformed_centroid = self.view_transformer.transform_points(
+                        np.array([[centroid[0], centroid[1]]])
+                    )
+                    centroid = tuple(transformed_centroid.squeeze())
+                    self.coordinates[track.id].append(centroid)
+                else:
+                    # Centroid not in source region
+                    pass
 
             # add the centroid as coordinate of the track id to calculate the speed
             self.coordinates[track.id].append(centroid)
@@ -264,7 +268,7 @@ class KalmanSpeed:
 
             num_frame += 1
 
-        #save_json(self.kalman_tracker_dict, results_path + file_out + ".json")
+        save_json(self.kalman_tracker_dict, results_path + file_out + ".json")
 
 
 if __name__ == "__main__":
@@ -324,24 +328,9 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    source = np.array([[550, 190], [1100, 190], [100, 1050], [1900, 1050]])
+    source = np.array([[550, 150], [1100, 150], [200, 1050], [1900, 1050]])
     target = np.array([[0, 0], [15, 0], [0, 200], [15, 200]])
-    # source = np.array([[510, 300], [770, 300], [40, 600], [1200, 600]])
-    # target = np.array([[0, 0], [40, 0], [0, 450], [40, 450]])
-    # source = np.array([[770, 720], [1000, 720], [570, 1000], [1120, 1000]])
-    # target = np.array([[0, 0], [8, 0], [0, 150], [8, 150]])
-
-    #show source polygon in source image
-    # first = "results/first_frame_original.jpg"
-    # img = cv2.imread(first)
-    # source2 = np.array([[550, 190], [1100, 190], [1900, 1050], [100, 1050]])
-    # cv2.polylines(img, [source2], isClosed=True, color=(0, 255, 0), thickness=2)
-    # cv2.imshow("source", img)
-    # cv2.waitKey(0)
-    # cv2.destroyAllWindows()
-
-    # get tl, tr, bl, br from source
-    corners = [target[0][0], target[1][0], target[2][0], target[2][1]]
+    corners = [source[0][0], source[1][0], source[2][0], source[3][1]]
     vt = ViewTransformer(source, target)
     kalmanSpeedTracking = KalmanSpeed(
         max_age=args.max_age,
@@ -358,7 +347,7 @@ if __name__ == "__main__":
         file_out=args.o_name,
         generate_video=args.store,
         vizualize=args.vizualize,
-        corners=corners
+        corners=corners,
     )
 
 # python3 tracking_speed.py --store --vizualize --o_name kalman_tracking_vdo --detections bbxs_clean_tracked.json
