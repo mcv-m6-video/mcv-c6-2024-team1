@@ -6,10 +6,36 @@ from numpy.typing import ArrayLike
 import cv2
 import matplotlib.cm as cm
 import torch
+from typing import List
 
 from syn_cam import *
 from mot.tracklet import Tracklet
 
+def multicam_track_similarity(mtrack1, mtrack2 , linkage: str,
+                              sims: np.array) -> float:
+    """Compute the similarity score between two multicam tracks.
+
+    Parameters
+    ----------
+    mtrack1: first multi-camera tracklet.
+    mtrack2: second multi-camera tracklet.
+    linkage: method to use for computing from ('average', 'single', 'complete', 'mean_feature')
+
+    Returns
+    -------
+    sim_score: similarity between the tracks.
+    """
+
+    # similarity of all pairs of tracks between mtrack1 and mtrack2
+    # this scales badly, but in all sensible cases multicam tracks contain only a few tracks
+    all_sims = [sims[t1.idx][t2.idx] for t1 in mtrack1 for t2 in mtrack2]
+    if linkage == "average":
+        return np.mean(all_sims)
+    if linkage == "single":
+        return np.max(all_sims)
+    if linkage == "complete":
+        return np.min(all_sims)
+    raise ValueError("Invalid linkage parameter value.")
 
 def read_corners(path):
     with open(path) as f:
@@ -25,10 +51,18 @@ def read_calibration(path):
     return matrix
 
 class MultiCameraTracklet:
-
     def __init__(self, new_id, tracks: list[int | str] = []) -> None:
-        self_id = new_id
+        self.id = new_id
         self.tracks = tracks
+        self.cams = []
+        for t in tracks:
+            self.cams.append(t.cam)
+    
+    def add_track(self,mtrack):
+        self.cams.append(mtrack.cams)
+        self.tracks.append(mtrack.tracks)
+    
+
 
 
 class PositionalMultiCameraTrack:
@@ -98,19 +132,33 @@ class PositionalMultiCameraTrack:
         cv2.waitKey(10)
 
         
+def temporal_compatibility(t1,t2, matrix):
+    for tr1 in t1.tracks:
+        for tr2 in t2.tracks:
+            if matrix[tr1.idx,tr2.idx]:
+                return True
 
+    return False
+
+def check_cameras(t1,t2):
+    for tr1 in t1.cams:
+        for tr2 in t2.cams:
+            if tr1==tr2:
+                return True
+    return False
+    
 if __name__ == "__main__":
     sequence_name = "S03"
     camera_names = ["c010", "c011", "c012", "c013", "c014", "c015"]
 
-    bg_image_path = f"./Week4/VisualizationData/{sequence_name}/bg.png"
+    bg_image_path = f"../VisualizationData/{sequence_name}/bg.png"
     # Write top left and bottom right GPS coordinates of the image in 2 lines
-    corners_path = f"./Week4/VisualizationData/{sequence_name}/corners.txt"
+    corners_path = f"../VisualizationData/{sequence_name}/corners.txt"
     tl_corner, br_corner = read_corners(corners_path)
     visualization = PositionalMultiCameraTrack(tl_corner, br_corner, bg_image_path, offset=(0.0002, 0.0005))
     
     for i, name in enumerate(camera_names):
-        calibration_path = f"./Data/aic19-track1-mtmc-train/train/{sequence_name}/{name}/calibration.txt"
+        calibration_path = f"./Data/train/{sequence_name}/{name}/calibration.txt"
         visualization.add_camera(i, read_calibration(calibration_path))
 
     for i, point in enumerate(itertools.product([0, 1920], np.linspace(200, 1920, num=40))):
@@ -127,3 +175,57 @@ if __name__ == "__main__":
     device = "cuda" if torch.cuda.is_available() else "cpu"
     f.to(device)
     sim = torch.matmul(f, f.T).cpu().numpy()
+    
+    min_sim = 0.5
+    candidates = []
+    for i in range(len(all_tracks)):
+
+        for j in range(i+1, len(all_tracks)):
+            t1, t2 = all_tracks[i], all_tracks[j]
+            if t_compa[i][j] and sim[i][j]>min_sim and t1.static_attributes['color'] == t2.static_attributes['color']:
+                candidates.append([-sim[i][j],int(i),int(j)])
+
+    sorted_candidates = np.sort(candidates,0)
+    n = len(all_tracks)
+    mtracks = [MultiCameraTracklet(i,[t]) for i,t in enumerate(all_tracks)]
+    remaining_tracks = set(range(n))
+    while len(sorted_candidates)>0:
+        c_sim, i, j = sorted_candidates[-1]
+        np.delete(sorted_candidates, -1)
+        if c_sim>-min_sim:
+            break
+        mtracks[int(i)].add_track(mtracks[int(j)])
+        i = int(i)
+        j = int(j)
+        remaining_tracks.remove(j)
+        for i_other in remaining_tracks:
+            if i_other == i:
+                continue
+            if check_cameras(mtracks[i], mtracks[i_other]) or not temporal_compatibility(mtracks[i],mtracks[i_other],t_compa):
+                continue
+
+            print(mtracks[i].tracks)
+            print(i_other)
+            print(mtracks[i_other].tracks)
+            
+            s = multicam_track_similarity(mtracks[i].tracks, mtracks[i_other].tracks,"average", sim)
+            if s >= min_sim:
+                sorted_candidates.append([-s, i, i_other])
+                sorted_candidates = np.sort(sorted_candidates,0)
+    
+    # drop invalidated mtracks
+    mtracks = [mtracks[i] for i in remaining_tracks]
+
+    # reindex final tracks and finalize them
+    for i, mtrack in enumerate(mtracks):
+        mtrack.id = i
+
+    print(mtracks)
+
+
+
+
+
+
+
+
