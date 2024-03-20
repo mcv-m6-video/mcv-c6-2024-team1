@@ -11,3 +11,8 @@ config/**
 Week2/results/
 Week3/results/
 c6/
+Week4/Task2/vehicle_mtmc
+*.pkl
+Week4/Task2/Data/**
+Week4/outputs
+Week4/aic19-track1-mtmc-train
