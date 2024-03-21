@@ -88,6 +88,15 @@ def read_calibration(path):
     return matrix
 
 
+def get_color(number):
+    """ Converts an integer number to a color """
+    blue = int(number*30 % 256)
+    green = int(number*103 % 256)
+    red = int(number*50 % 256)
+
+    return red, blue, green
+
+
 class MultiCameraTrackScene:
     def __init__(self, tl_coords: ArrayLike | tuple[float, float], br_coords: ArrayLike | tuple[float, float], image_path: Path | str, offset: ArrayLike | tuple[float, float] = (0, 0)):
         self.tl_corner = np.array(tl_coords)
@@ -131,15 +140,14 @@ class MultiCameraTrackScene:
         return self.objects[id]
 
     def reset(self):
-        for obj in self.objects:
-            if "cam" not in obj:
+        for obj in list(self.objects.keys()):
+            if type(obj) != str or "cam" not in obj:
                 self.objects.pop(obj)
 
 
     def plot(self, show_image = True, show_fovs: list[int | str] = None):
         if show_fovs is None:
             show_fovs = self.cameras.keys()
-        print("Plotting:")
         if show_image:
             image = self.bg_image.copy()
         else:
@@ -151,26 +159,26 @@ class MultiCameraTrackScene:
             map_pos = (gps_coords - self.tl_corner) * self.coords_to_pixels_factor
             #print(map_pos)
             if type(id) == str:
-                num = re.match(r"\d+", id).group()
-                if num not in show_fovs:
-                    continue
-            if id[:5] == "cam0b":
-                color = (255, 0, 0)
-            if id[:5] == "cam1b":
-                color = (0, 255, 0)
-            if id[:5] == "cam2b":
-                color = (0, 0, 255)
-            if id[:5] == "cam3b":
-                color = (0, 255, 255)
-            if id[:5] == "cam4b":
-                color = (255, 0, 255)
-            if id[:5] == "cam5b":
-                color = (255, 255, 0)
-            if type(id) == int:
-                color = np.round(mpl.colormaps["tab20"](id) * 255).astype(np.uint8)[::-1]
+                if len(num := re.findall(r"cam(\d+)b", id)) > 0:
+                    if int(num[0]) not in show_fovs:
+                        continue
+                if id[:5] == "cam0b":
+                    color = (255, 0, 0)
+                if id[:5] == "cam1b":
+                    color = (0, 255, 0)
+                if id[:5] == "cam2b":
+                    color = (0, 0, 255)
+                if id[:5] == "cam3b":
+                    color = (0, 255, 255)
+                if id[:5] == "cam4b":
+                    color = (255, 0, 255)
+                if id[:5] == "cam5b":
+                    color = (255, 255, 0)
+            elif type(id) == int:
+                color = get_color(id)
             cv2.circle(image, np.int32([map_pos[0], map_pos[1]]), radius=5, color=color, thickness=-1)
         cv2.imshow("ZenithalView", image)
-        cv2.waitKey(1)
+        cv2.waitKey(2000)
 
 
 def get_bbox_center(bbox):
@@ -183,15 +191,20 @@ def positional_match(track1: Tracklet, track2: Tracklet, scene: MultiCameraTrack
     time_intersecting = True if frame_intersect_start < frame_intersect_end else False
 
     if time_intersecting:
+        print(f"Intersecting during {frame_intersect_end - frame_intersect_start} frames.")
         frame_matches = 0
+        processed_frames = 0
+        print(f"{track1.frames=}")
+        print(f"{track2.frames=}")
         for frame in range(frame_intersect_start, frame_intersect_end + 1):
             track1_cam_frame = (frame - track1.global_start)
+            print(f"{track1_cam_frame=}")
             track2_cam_frame = (frame - track2.global_start)
-            if track1_cam_frame in track1.frames and track2_cam_frame in track2.frames:
-                bbox1_center = get_bbox_center(track1.bboxes[track1.frames.index(track1_cam_frame)])
-                bbox2_center = get_bbox_center(track2.bboxes[track2.frames.index(track2_cam_frame)])
-            else:
-                continue
+            print(f"{track2_cam_frame=}")
+            processed_frames += 1
+            bbox1_center = get_bbox_center(track1.bboxes[track1.frames[track1_cam_frame]])
+            bbox2_center = get_bbox_center(track2.bboxes[track2.frames[track2_cam_frame]])
+            
             pos1 = scene.add_object(track1.track_id, track1.cam, bbox1_center)
             pos2 = scene.add_object(track2.track_id, track2.cam, bbox2_center)
             distance = np.sqrt(np.sum(((pos1 - pos2) * scene.coords_to_meters_factor)**2))
@@ -208,27 +221,35 @@ def positional_match(track1: Tracklet, track2: Tracklet, scene: MultiCameraTrack
             scene.plot(show_image=False, show_fovs=[track1.cam, track2.cam])
             scene.reset()
         
-        if frame_matches / (frame_intersect_end - frame_intersect_start) > 0.8:
+        print(f"{processed_frames} have been processed.")
+        if frame_matches / (frame_intersect_end - frame_intersect_start) > 0.4:
+            print(f"Matched {i, j} through overlap")
             return True
         else:
+            print(f"Not enough overlap between {i, j}")
             return False
     else:
+        print("Non intersecting")
         first_track: Tracklet = min(track1, track2, key=lambda t: t.global_end)
         second_track: Tracklet = max(track1, track2, key=lambda t: t.global_end)
         #TODO: Use speed estimation part?
         last_bbx_centers = map(get_bbox_center, first_track.bboxes[-5:])
-        last_positions = np.array(map(lambda x: scene.add_object(x, first_track.cam, x), last_bbx_centers))
+        last_positions = [scene.add_object(i, first_track.cam, center) for i, center in enumerate(last_bbx_centers)]
         last_velocities = [last_positions[i] - last_positions[i-1] for i in range(1, len(last_positions))]
         estimated_velocity = np.mean(last_velocities, axis=0)
 
         frame_diff = frame_intersect_start - frame_intersect_end
         estimated_position = estimated_velocity * frame_diff + last_positions[-1]
 
-        track2_start_position = scene.add_object(1, second_track.cam, get_bbox_center(second_track.bboxes[0]))
+        track2_start_position = scene.add_object("t2", second_track.cam, get_bbox_center(second_track.bboxes[0]))
         distance = np.sqrt(np.sum(((estimated_position - track2_start_position) * scene.coords_to_meters_factor)**2))
 
+        scene.plot(show_image=False, show_fovs=[first_track.cam, second_track.cam])
         scene.reset()
-        return distance < DISTANCE_THRESHOLD
+        if distance < DISTANCE_THRESHOLD:
+            print(f"Matched {i, j} through speed extrapolation")
+            return True
+        return False
 
 
 def merge_tracks(track1: Tracklet, track2: Tracklet):
@@ -356,22 +377,15 @@ if __name__ == "__main__":
     sequence_name = "S03"
     camera_names = ["c010", "c011", "c012", "c013", "c014", "c015"]
 
-    bg_image_path = f"../VisualizationData/{sequence_name}/bg.png"
+    bg_image_path = f"./Week4/VisualizationData/{sequence_name}/bg.png"
     # Write top left and bottom right GPS coordinates of the image in 2 lines
-    corners_path = f"../VisualizationData/{sequence_name}/corners.txt"
+    corners_path = f"./Week4/VisualizationData/{sequence_name}/corners.txt"
     tl_corner, br_corner = read_corners(corners_path)
-    visualization = MultiCameraTrackScene(tl_corner, br_corner, bg_image_path, offset=(0.0002, 0.0005), show_fov=True)
+    visualization = MultiCameraTrackScene(tl_corner, br_corner, bg_image_path, offset=(0.0002, 0.0005))
     
     for i, name in enumerate(camera_names):
-        calibration_path = f"./Data/train/{sequence_name}/{name}/calibration.txt"
+        calibration_path = f"./Data/aic19-track1-mtmc-train/train/{sequence_name}/{name}/calibration.txt"
         visualization.add_camera(i, read_calibration(calibration_path))
-
-    for i, point in enumerate(itertools.product([0, 1920], np.linspace(200, 1080, num=40))):
-        for j in range(len(camera_names)):
-            visualization.add_object(f"cam{j}b_{i}", j, point)
-            #visualization.plot(False)
-    #visualization.plot(False)
-    cv2.waitKey(0)
     
     all_tracks, t_compa , global_frames = syncronize_trackers(camera_names)
 
@@ -380,7 +394,7 @@ if __name__ == "__main__":
         track1: Tracklet = all_tracks[i]
         track2: Tracklet = all_tracks[j]
         
-        if positional_match(track1, track2):
+        if positional_match(track1, track2, visualization):
             merge_tracks(track1, track2)
 
     # precompute similarities between tracks

@@ -79,7 +79,7 @@ def syncronize_trackers(cameras: list[str]):
     global_frames = {}
     print(max(track.global_end for track in all_tracks))
     for frame in range(max(track.global_end for track in all_tracks)):
-        global_frames[frame] = [[track.idx,track.cam] for track in all_tracks if track.global_start <= frame <= track.global_end]
+        global_frames[frame] = [[track.track_id,track.cam] for track in all_tracks if track.global_start <= frame <= track.global_end]
 
     
     return all_tracks, compa, global_frames
