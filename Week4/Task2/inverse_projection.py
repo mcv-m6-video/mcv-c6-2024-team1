@@ -30,7 +30,8 @@ EARTH_RADIUS = 6371001
 DEG2RAD = np.pi / 180
 MTMC_TRACKLETS_NAME = "mtmc_tracklets"
 OUTPUT_DIR = '../results'
-PICKLED_TRACKLETS = ['pickle_tracklet.pkl']
+CSV_TRACKLETS = ['c001_tracklet.csv', 'c002_tracklet.csv',
+                 'c003_tracklet.csv', 'c004_tracklet.csv', 'c005_tracklet.csv']
 
 
 class MultiCameraTracklet:
@@ -252,11 +253,6 @@ def positional_match(track1: Tracklet, track2: Tracklet, scene: MultiCameraTrack
         scene.reset()
         return distance < DISTANCE_THRESHOLD
 
-
-def merge_tracks(track1: Tracklet, track2: Tracklet):
-    pass
-
-
 def temporal_compatibility(t1, t2, matrix):
     for tr1 in t1.tracks:
         for tr2 in t2.tracks:
@@ -286,15 +282,6 @@ def get_tracks_by_cams(multicam_tracks: List[MultiCameraTracklet]) -> List[List[
     return tracks_per_cam
 
 
-def save_tracklets(tracklets, path, max_features=None):
-    """Saves tracklets using pickle (with re-id features)"""
-    if max_features is not None:
-        for tracklet in tracklets:
-            tracklet.cluster_features(max_features)
-    with open(path, "wb") as fp:
-        pickle.dump(tracklets, fp, protocol=pickle.HIGHEST_PROTOCOL)
-
-
 def to_detections(tracklets):
     res = {
         "frame": [],
@@ -316,12 +303,12 @@ def to_detections(tracklets):
 
     for tracklet in tracklets:
         res["frame"].extend(tracklet.frames)
+        res["track_id"].extend([tracklet.track_id] * len(tracklet.frames))
         for x, y, w, h in tracklet.bboxes:
             res["bbox_topleft_x"].append(int(x))
             res["bbox_topleft_y"].append(int(y))
             res["bbox_width"].append(int(round(w)))
             res["bbox_height"].append(int(round(h)))
-        res["track_id"].extend([tracklet.track_id] * len(tracklet.frames))
         for static_f, val in tracklet.static_attributes.items():
             values = val if isinstance(val, list) else [
                 val] * len(tracklet.frames)
@@ -339,6 +326,17 @@ def to_detections(tracklets):
             print(f"Items in column {k}: {len(v)}")
         raise ValueError("Error: not all column lengths are equal.")
 
+    # Sort by frame
+    zipped_res = zip(res["frame"], res["bbox_topleft_x"], res["bbox_topleft_y"],
+                     res["bbox_width"], res["bbox_height"], res["track_id"])
+
+    # Sort the zipped res based on the "frame" values
+    sorted_res = sorted(zipped_res, key=lambda x: x[0])
+
+    # Unpack the sorted res into separate lists
+    res["frame"], res["bbox_topleft_x"], res["bbox_topleft_y"], res["bbox_width"], \
+        res["bbox_height"], res["track_id"] = zip(*sorted_res)
+
     return res
 
 
@@ -349,36 +347,10 @@ def save_tracklets_csv(tracklets, path):
     df.to_csv(path, index=False)
 
 
-def save_tracklets_txt(tracklets, path):
-    """Save tracklets as detections in the MOTChallenge format"""
-    res = to_detections(tracklets)
-    res["frame"] = list(map(lambda x: x + 1, res["frame"]))
-    df = pd.DataFrame(res)
-    df = df[["frame", "track_id", "bbox_topleft_x",
-             "bbox_topleft_y", "bbox_width", "bbox_height"]]
-    df["conf"] = 1
-    df["x"] = -1
-    df["y"] = -1
-    df["z"] = -1
-    df.to_csv(path, index=False, header=False)
-
-
-def save_tracklets_per_cam(multicam_tracks: List[MultiCameraTracklet], save_paths_per_cam: List[str]):
-    tracks_per_cam = get_tracks_by_cams(multicam_tracks)
-    for tracks, path in zip(tracks_per_cam, save_paths_per_cam):
-        save_tracklets(tracks, path)
-
-
 def save_tracklets_csv_per_cam(multicam_tracks: List[MultiCameraTracklet], save_paths_per_cam: List[str]):
     tracks_per_cam = get_tracks_by_cams(multicam_tracks)
     for tracks, path in zip(tracks_per_cam, save_paths_per_cam):
         save_tracklets_csv(tracks, path)
-
-
-def save_tracklets_txt_per_cam(multicam_tracks: List[MultiCameraTracklet], save_paths_per_cam: List[str]):
-    tracks_per_cam = get_tracks_by_cams(multicam_tracks)
-    for tracks, path in zip(tracks_per_cam, save_paths_per_cam):
-        save_tracklets_txt(tracks, path)
 
 
 STATIC_ATTRIBUTES = {
@@ -422,11 +394,6 @@ def annotate(img_pil, id_label, attributes, tx, ty, bx, by, color, font):
     textcoords = draw.multiline_textbbox((tx, by), text, font=font)
 
     txt_y = ty - (textcoords[3] - textcoords[1]) - 4
-    # if the annotation below the box stretches out of the image, put it above
-    #if textcoords[3] >= img_pil.size[1]:
-    #    txt_y = ty - (textcoords[3] - textcoords[1]) - 4
-    #else:
-    #    txt_y = by
 
     # draw rectangle in the background
     coords = draw.multiline_textbbox((tx, txt_y), text, font=font)
@@ -562,20 +529,9 @@ def annotate_video_mtmc(video_in, video_out, multicam_tracks, cam_idx, **kwargs)
     annotate_video_with_tracklets(video_in, video_out, tracks, **kwargs)
 
 
-def load_mtmc_tracklets(path: str):
-    with open(path, "rb") as f:
-        res = pickle.load(f)
-    return res
-
-
-def save_mtmc_tracklets(multicam_tracks: List[MultiCameraTracklet], path: str):
-    with open(path, "wb") as f:
-        pickle.dump(multicam_tracks, f, protocol=pickle.HIGHEST_PROTOCOL)
-
-
 if __name__ == "__main__":
-    sequence_name = "S03"
-    camera_names = ["c010", "c011", "c012", "c013", "c014", "c015"]
+    sequence_name = "S01"
+    camera_names = ["c001", "c002", "c003", "c004", "c005"]
 
     bg_image_path = f"../VisualizationData/{sequence_name}/bg.png"
     # Write top left and bottom right GPS coordinates of the image in 2 lines
@@ -662,21 +618,23 @@ if __name__ == "__main__":
         mtrack.id = i
 
     # save per camera results
-    pkl_paths = []
-    for i, pkl_path in enumerate(PICKLED_TRACKLETS):
-        mtmc_pkl_path = os.path.join(
-            OUTPUT_DIR, f"{i}_{os.path.split(pkl_path)[1]}")
-        pkl_paths.append(mtmc_pkl_path)
-    csv_paths = [pth.split(".")[0] + ".csv" for pth in pkl_paths]
-    txt_paths = [pth.split(".")[0] + ".txt" for pth in pkl_paths]
+    csv_paths = []
+    for i, csv_path in enumerate(CSV_TRACKLETS):
+        mtmc_csv_path = os.path.join(
+            OUTPUT_DIR, f"{i}_{os.path.split(csv_path)[1]}")
+        csv_paths.append(mtmc_csv_path)
 
-    #save_tracklets_per_cam(mtracks, pkl_paths)
-    #save_tracklets_csv_per_cam(mtracks, csv_paths)
-    #save_tracklets_txt_per_cam(mtracks, txt_paths)
+    save_tracklets_csv_per_cam(mtracks, csv_paths)
 
-    print(len(mtracks))
-    print(len(all_tracks))
-    print()
-
+    annotate_video_mtmc('./Data/train/S03/c010/vdo.avi',
+                        '../results/vdo_c010_tracklets.avi', mtracks, 0)
     annotate_video_mtmc('./Data/train/S03/c011/vdo.avi',
                         '../results/vdo_c011_tracklets.avi', mtracks, 1)
+    annotate_video_mtmc('./Data/train/S03/c012/vdo.avi',
+                        '../results/vdo_c012_tracklets.avi', mtracks, 2)
+    annotate_video_mtmc('./Data/train/S03/c013/vdo.avi',
+                        '../results/vdo_c013_tracklets.avi', mtracks, 3)
+    annotate_video_mtmc('./Data/train/S03/c014/vdo.avi',
+                        '../results/vdo_c014_tracklets.avi', mtracks, 4)
+    annotate_video_mtmc('./Data/train/S03/c015/vdo.avi',
+                        '../results/vdo_c015_tracklets.avi', mtracks, 5)
