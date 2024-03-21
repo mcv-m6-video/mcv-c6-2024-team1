@@ -123,7 +123,7 @@ To compute the IDF1 first concatenate the tracklets files and gt files with:
 python concatenate_csv.py
 ```
 
-Finally, run trackeval with the following command:
+Finally, run trackeval. You can refer to last week's [README](../Week3/README.md) to see the instructions to run this part. 
 
 
 
