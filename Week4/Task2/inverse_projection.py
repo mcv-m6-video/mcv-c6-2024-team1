@@ -12,6 +12,13 @@ import heapq
 import random
 import os
 import pandas as pd
+import imageio
+import matplotlib.pyplot as plt
+from PIL import Image, ImageDraw, ImageFont
+import numpy as np
+from typing import List
+import argparse
+import pickle
 
 from syn_cam import *
 from mot.tracklet import Tracklet
@@ -23,14 +30,16 @@ EARTH_RADIUS = 6371001
 DEG2RAD = np.pi / 180
 MTMC_TRACKLETS_NAME = "mtmc_tracklets"
 OUTPUT_DIR = '../results'
-PICKLED_TRACKLETS = ['pickle_tracklet']
+PICKLED_TRACKLETS = ['pickle_tracklet.pkl']
+
 
 class MultiCameraTracklet:
     def __init__(self, new_id, tracks: List[Tracklet] = []) -> None:
         self.id = new_id
         self.tracks = tracks
         self.cams = []
-        self.visualization_color = (int(random.random() * 256), int(random.random() * 256), int(random.random() * 256))
+        self.visualization_color = (int(
+            random.random() * 256), int(random.random() * 256), int(random.random() * 256))
         for t in tracks:
             self.cams.append(t.cam)
 
@@ -40,7 +49,6 @@ class MultiCameraTracklet:
         for track in mtrack.tracks:
             self.cams.append(track.cam)
         self.cams = list(set(self.cams))
-        self.n_cams = len(self.cams)
 
 
 def multicam_track_similarity(mtrack1: MultiCameraTracklet, mtrack2: MultiCameraTracklet, linkage: str,
@@ -60,7 +68,7 @@ def multicam_track_similarity(mtrack1: MultiCameraTracklet, mtrack2: MultiCamera
 
     # similarity of all pairs of tracks between mtrack1 and mtrack2
     # this scales badly, but in all sensible cases multicam tracks contain only a few tracks
-    all_sims = [sims[t1.idx][t2.idx]
+    all_sims = [sims[t1.track_id][t2.track_id]
                 for t1 in mtrack1.tracks for t2 in mtrack2.tracks]
     if linkage == "average":
         return np.mean(all_sims)
@@ -110,8 +118,10 @@ class MultiCameraTrackScene:
         self.bg_image = cv2.imread(str(image_path))
         print(self.bg_image.shape)
 
-        self.coords_to_pixels_factor = np.array([-self.bg_image.shape[0] / delta_theta, self.bg_image.shape[1] / delta_phi])
-        self.coords_to_meters_factor = np.array([DEG2RAD * EARTH_RADIUS, DEG2RAD * EARTH_RADIUS * np.cos(tl_coords[0])])
+        self.coords_to_pixels_factor = np.array(
+            [-self.bg_image.shape[0] / delta_theta, self.bg_image.shape[1] / delta_phi])
+        self.coords_to_meters_factor = np.array(
+            [DEG2RAD * EARTH_RADIUS, DEG2RAD * EARTH_RADIUS * np.cos(tl_coords[0])])
 
         self.cameras: dict[int, np.ndarray] = {}
         self.objects: dict[int, np.ndarray] = {}
@@ -123,7 +133,6 @@ class MultiCameraTrackScene:
 
         for i, point in enumerate(itertools.product([0, 1920], np.linspace(200, 1080, num=40))):
             visualization.add_object(f"cam{id}b_{i}", id, point)
-    
 
     def add_object(self, id: int, camera_id: int, pixel_position: ArrayLike | tuple[float, float]):
         # Pixel position in (x, y) format from top left corner
@@ -136,7 +145,7 @@ class MultiCameraTrackScene:
         world_homo = (self.cameras[camera_id] @ screen_coords)
         # print(world_homo)
         self.objects[id] = world_homo[:2] / world_homo[2]
-        #print(self.objects[id])
+        # print(self.objects[id])
         return self.objects[id]
 
     def reset(self):
@@ -144,8 +153,7 @@ class MultiCameraTrackScene:
             if type(obj) != str or "cam" not in obj:
                 self.objects.pop(obj)
 
-
-    def plot(self, show_image = True, show_fovs: list[int | str] = None):
+    def plot(self, show_image=True, show_fovs: list[int | str] = None):
         if show_fovs is None:
             show_fovs = self.cameras.keys()
         if show_image:
@@ -154,10 +162,11 @@ class MultiCameraTrackScene:
             image = np.zeros(self.bg_image.shape, dtype=np.int8)
         color = (255, 0, 0)
         for id, gps_coords in self.objects.items():
-            #print(f"{gps_coords=}")
-            #print((gps_coords - self.tl_corner))
-            map_pos = (gps_coords - self.tl_corner) * self.coords_to_pixels_factor
-            #print(map_pos)
+            # print(f"{gps_coords=}")
+            # print((gps_coords - self.tl_corner))
+            map_pos = (gps_coords - self.tl_corner) * \
+                self.coords_to_pixels_factor
+            # print(map_pos)
             if type(id) == str:
                 if len(num := re.findall(r"cam(\d+)b", id)) > 0:
                     if int(num[0]) not in show_fovs:
@@ -182,7 +191,8 @@ class MultiCameraTrackScene:
 
 
 def get_bbox_center(bbox):
-    return (bbox[1] + bbox[2]/2, bbox[0] + bbox[3]/2) # Return (x, y) from top left corner
+    # Return (x, y) from top left corner
+    return (bbox[1] + bbox[2]/2, bbox[0] + bbox[3]/2)
 
 
 def positional_match(track1: Tracklet, track2: Tracklet, scene: MultiCameraTrackScene):
@@ -207,17 +217,19 @@ def positional_match(track1: Tracklet, track2: Tracklet, scene: MultiCameraTrack
             
             pos1 = scene.add_object(track1.track_id, track1.cam, bbox1_center)
             pos2 = scene.add_object(track2.track_id, track2.cam, bbox2_center)
-            distance = np.sqrt(np.sum(((pos1 - pos2) * scene.coords_to_meters_factor)**2))
+            distance = np.sqrt(
+                np.sum(((pos1 - pos2) * scene.coords_to_meters_factor)**2))
 
             if distance < DISTANCE_THRESHOLD:
                 frame_matches += 1
-            
+
             if distance > BREAK_DISTANCE:
                 print("Too far away, breaking")
-                scene.plot(show_image=False, show_fovs=[track1.cam, track2.cam])
+                scene.plot(show_image=False, show_fovs=[
+                           track1.cam, track2.cam])
                 scene.reset()
                 return False
-            
+
             scene.plot(show_image=False, show_fovs=[track1.cam, track2.cam])
             scene.reset()
         
@@ -231,15 +243,17 @@ def positional_match(track1: Tracklet, track2: Tracklet, scene: MultiCameraTrack
     else:
         print("Non intersecting")
         first_track: Tracklet = min(track1, track2, key=lambda t: t.global_end)
-        second_track: Tracklet = max(track1, track2, key=lambda t: t.global_end)
-        #TODO: Use speed estimation part?
+        second_track: Tracklet = max(
+            track1, track2, key=lambda t: t.global_end)
+        # TODO: Use speed estimation part?
         last_bbx_centers = map(get_bbox_center, first_track.bboxes[-5:])
         last_positions = [scene.add_object(i, first_track.cam, center) for i, center in enumerate(last_bbx_centers)]
         last_velocities = [last_positions[i] - last_positions[i-1] for i in range(1, len(last_positions))]
         estimated_velocity = np.mean(last_velocities, axis=0)
 
         frame_diff = frame_intersect_start - frame_intersect_end
-        estimated_position = estimated_velocity * frame_diff + last_positions[-1]
+        estimated_position = estimated_velocity * \
+            frame_diff + last_positions[-1]
 
         track2_start_position = scene.add_object("t2", second_track.cam, get_bbox_center(second_track.bboxes[0]))
         distance = np.sqrt(np.sum(((estimated_position - track2_start_position) * scene.coords_to_meters_factor)**2))
@@ -255,10 +269,11 @@ def positional_match(track1: Tracklet, track2: Tracklet, scene: MultiCameraTrack
 def merge_tracks(track1: Tracklet, track2: Tracklet):
     pass
 
+
 def temporal_compatibility(t1, t2, matrix):
     for tr1 in t1.tracks:
         for tr2 in t2.tracks:
-            if matrix[tr1.idx, tr2.idx]:
+            if matrix[tr1.track_id, tr2.track_id]:
                 return True
 
     return False
@@ -276,11 +291,13 @@ def get_tracks_by_cams(multicam_tracks: List[MultiCameraTracklet]) -> List[List[
     """Return multicam tracklets sorted by cameras."""
     if len(multicam_tracks) == 0:
         return []
-    tracks_per_cam = [[] for _ in range(len(multicam_tracks[0].cams))]
+    tracks_per_cam = [[] for _ in range(6)]
     for mtrack in multicam_tracks:
         for track in mtrack.tracks:
+            track.track_id = mtrack.id
             tracks_per_cam[track.cam].append(track)
     return tracks_per_cam
+
 
 def save_tracklets(tracklets, path, max_features=None):
     """Saves tracklets using pickle (with re-id features)"""
@@ -289,6 +306,7 @@ def save_tracklets(tracklets, path, max_features=None):
             tracklet.cluster_features(max_features)
     with open(path, "wb") as fp:
         pickle.dump(tracklets, fp, protocol=pickle.HIGHEST_PROTOCOL)
+
 
 def to_detections(tracklets):
     res = {
@@ -336,6 +354,7 @@ def to_detections(tracklets):
 
     return res
 
+
 def save_tracklets_csv(tracklets, path):
     """Save tracklets as detections in a csv format (with attributes and zones)"""
     res = to_detections(tracklets)
@@ -348,12 +367,14 @@ def save_tracklets_txt(tracklets, path):
     res = to_detections(tracklets)
     res["frame"] = list(map(lambda x: x + 1, res["frame"]))
     df = pd.DataFrame(res)
-    df = df[["frame", "track_id", "bbox_topleft_x", "bbox_topleft_y", "bbox_width", "bbox_height"]]
+    df = df[["frame", "track_id", "bbox_topleft_x",
+             "bbox_topleft_y", "bbox_width", "bbox_height"]]
     df["conf"] = 1
     df["x"] = -1
     df["y"] = -1
     df["z"] = -1
     df.to_csv(path, index=False, header=False)
+
 
 def save_tracklets_per_cam(multicam_tracks: List[MultiCameraTracklet], save_paths_per_cam: List[str]):
     tracks_per_cam = get_tracks_by_cams(multicam_tracks)
@@ -373,6 +394,198 @@ def save_tracklets_txt_per_cam(multicam_tracks: List[MultiCameraTracklet], save_
         save_tracklets_txt(tracks, path)
 
 
+STATIC_ATTRIBUTES = {
+    "color": ["yellow", "orange", "green", "gray", "red", "blue", "white", "golden", "brown", "black",
+              "purple", "pink"],
+    "type": ["sedan", "suv", "van", "hatchback", "mpv",
+             "pickup", "bus", "truck", "estate", "sportscar", "RV", "bike"],
+}
+
+DYNAMIC_ATTRIBUTES = {
+    "brake_signal": ["off", "on"],
+}
+
+
+def get_attribute_value(name: str, value: int):
+    """Get the description of an attribute, e.g. get_attribute_value('color', 5) -> 'blue'."""
+    if name == "speed":
+        return str(value)
+    if name in STATIC_ATTRIBUTES:
+        return STATIC_ATTRIBUTES[name][value]
+    if name in DYNAMIC_ATTRIBUTES:
+        return DYNAMIC_ATTRIBUTES[name][value]
+    err = f"Invalid static or dynamic attribute name: {name}."
+    raise ValueError(err)
+
+
+def put_text(img_pil, text, x, y, color, font):
+    draw = ImageDraw.Draw(img_pil)
+    draw.text((x, y), text, (color[0], color[1], color[2],
+                             255), font=font)
+    return img_pil
+
+
+def annotate(img_pil, id_label, attributes, tx, ty, bx, by, color, font):
+    """ Put the id label and the features as text below or above of a bounding box. """
+
+    draw = ImageDraw.Draw(img_pil, "RGBA")
+    draw.rectangle([tx, ty, bx, by], outline=color, width=3)
+    text = id_label
+
+    textcoords = draw.multiline_textbbox((tx, by), text, font=font)
+
+    txt_y = ty - (textcoords[3] - textcoords[1]) - 4
+    # if the annotation below the box stretches out of the image, put it above
+    #if textcoords[3] >= img_pil.size[1]:
+    #    txt_y = ty - (textcoords[3] - textcoords[1]) - 4
+    #else:
+    #    txt_y = by
+
+    # draw rectangle in the background
+    coords = draw.multiline_textbbox((tx, txt_y), text, font=font)
+    # add some padding
+    textcoords = (coords[0] - 2, coords[1] - 2, coords[2] + 2, coords[3] + 2)
+    draw.rectangle(textcoords, fill=color)
+
+    # draw the text finally
+    draw.multiline_text((tx, txt_y), text, (0, 0, 0), font=font)
+    return img_pil
+
+
+class Video:
+    def __init__(self, font, fontsize=13):
+        cmap = plt.get_cmap("Set2")
+        self.colors = [cmap(i)[:3] for i in range(cmap.N)]
+        cmap2 = plt.get_cmap("hsv")
+        for i in np.linspace(0.1, 0.5, 7):
+            self.colors.append(cmap2(i)[:3])
+        self.HASH_Q = int(1e9 + 7)
+
+        try:
+            self.font = ImageFont.truetype(font, fontsize)
+        except OSError:
+            # log.error(f"Video: Font {font} cannot be loaded, using PIL default font.")
+            print(
+                f"Video: Font {font} cannot be loaded, using PIL default font.")
+            self.font = ImageFont.load_default()
+        self.frame_font = ImageFont.truetype(font, 18)
+        self.frame_num = 0
+
+    def render_tracks(self, frame, track_ids, track_bboxes, attributes):
+        overlay = Image.fromarray(
+            np.zeros((frame.shape[0], frame.shape[1], 4), dtype=np.uint8), "RGBA")
+        for track_id, bbox, attrib in zip(track_ids, track_bboxes, attributes):
+            tx, ty, w, h = bbox
+            bx, by = int(tx + w), int(ty + h)
+            color = self.colors[(self.HASH_Q * int(track_id)) %
+                                len(self.colors)]
+            color = tuple(int(i * 255) for i in color)
+
+            overlay = annotate(overlay, str(track_id), attrib,
+                               tx, ty, bx, by, color, self.font)
+
+        mask = Image.fromarray((np.array(overlay) > 0).astype(np.uint8) * 192)
+        frame_img = Image.fromarray(frame)
+        frame_img.paste(overlay, mask=mask)
+
+        put_text(frame_img, f"Frame {self.frame_num}",
+                 0, 0, (255, 0, 0), self.frame_font)
+        self.frame_num += 1
+
+        return np.array(frame_img)
+
+
+class FileVideo(Video):
+    def __init__(self, font, save_path, fps, codec, format="FFMPEG", mode="I", fontsize=13):
+        super().__init__(font, fontsize=fontsize)
+        self.video = imageio.get_writer(save_path, format=format, mode=mode,
+                                        fps=fps, codec=codec, macro_block_size=8)
+
+    def update(self, frame, track_ids, bboxes, attributes):
+        frame = self.render_tracks(frame, track_ids, bboxes, attributes)
+        self.video.append_data(frame)
+
+    def close(self):
+        self.video.close()
+
+
+def annotate_video_with_tracklets(input_path, output_path, tracklets, font="Hack-Regular.ttf",
+                                  fontsize=13):
+    video_in = imageio.get_reader(input_path)
+    video_meta = video_in.get_meta_data()
+    video_out = FileVideo(
+        font, output_path, video_meta["fps"], video_meta["codec"], fontsize=fontsize)
+
+    tracklets = sorted(tracklets, key=lambda tr: tr.frames[0])
+    print(tracklets)
+    active_tracks = {}
+    nxt_track = 0
+
+    for frame_idx, frame in enumerate(video_in):
+        while nxt_track < len(tracklets) and tracklets[nxt_track].frames[0] == frame_idx:
+            active_tracks[nxt_track] = 0
+            nxt_track += 1
+
+        track_ids, bboxes, attribs = [], [], []
+        ended_tracks = []
+        incr_tracks = []
+
+        # gather info for the current frame
+        for track_idx, ptr in active_tracks.items():
+            track = tracklets[track_idx]
+
+            try:
+                static_refined = isinstance(
+                    next(iter(track.static_attributes.values())), int)
+            except StopIteration:
+                static_refined = True
+
+            if track.frames[ptr] == frame_idx:
+                track_ids.append(track.track_id)
+                bboxes.append(track.bboxes[ptr])
+
+                attr = {}
+                for k, v in track.static_attributes.items():
+                    if static_refined:
+                        attr[k] = v
+                    else:
+                        attr[k] = v[ptr]
+                for k, v in track.dynamic_attributes.items():
+                    attr[k] = v[ptr]
+                attribs.append(attr)
+
+                if ptr >= len(track.frames) - 1:
+                    ended_tracks.append(track_idx)
+                else:
+                    incr_tracks.append(track_idx)
+
+        for track_idx in ended_tracks:
+            del active_tracks[track_idx]
+        for track_idx in incr_tracks:
+            active_tracks[track_idx] += 1
+
+        video_out.update(frame, track_ids, bboxes, attribs)
+
+    video_out.close()
+
+
+def annotate_video_mtmc(video_in, video_out, multicam_tracks, cam_idx, **kwargs):
+    tracks = get_tracks_by_cams(multicam_tracks)[cam_idx]
+    print(len(tracks))
+    annotate_video_with_tracklets(video_in, video_out, tracks, **kwargs)
+
+
+def load_mtmc_tracklets(path: str):
+    with open(path, "rb") as f:
+        res = pickle.load(f)
+    return res
+
+
+def save_mtmc_tracklets(multicam_tracks: List[MultiCameraTracklet], path: str):
+    with open(path, "wb") as f:
+        pickle.dump(multicam_tracks, f, protocol=pickle.HIGHEST_PROTOCOL)
+
+
 if __name__ == "__main__":
     sequence_name = "S03"
     camera_names = ["c010", "c011", "c012", "c013", "c014", "c015"]
@@ -386,8 +599,8 @@ if __name__ == "__main__":
     for i, name in enumerate(camera_names):
         calibration_path = f"./Data/aic19-track1-mtmc-train/train/{sequence_name}/{name}/calibration.txt"
         visualization.add_camera(i, read_calibration(calibration_path))
-    
-    all_tracks, t_compa , global_frames = syncronize_trackers(camera_names)
+
+    all_tracks, t_compa, global_frames = syncronize_trackers(camera_names)
 
     # Check position coincidences
     for (i, j) in set(map(frozenset, np.argwhere(t_compa == 1))):
@@ -410,7 +623,9 @@ if __name__ == "__main__":
     for i in range(len(all_tracks)):
         for j in range(i+1, len(all_tracks)):
             t1, t2 = all_tracks[i], all_tracks[j]
-            if t_compa[i][j] and sim[i][j] > min_sim and t1.static_attributes['color'] == t2.static_attributes['color']:
+            if t_compa[i][j] and sim[i][j] > min_sim \
+                    and t1.static_attributes['color'] == t2.static_attributes['color'] \
+                    and t1.static_attributes['type'] != 11:
                 candidates.append((-sim[i][j], timestamp, i, j))
 
     # sorted_candidates = np.sort(candidates,0)
@@ -431,7 +646,7 @@ if __name__ == "__main__":
             continue
 
         mtracks[i].add_track(mtracks[j])
-        
+
         timestamp += 1
         remaining_tracks.remove(j)
         last_mod[i] = timestamp
@@ -443,14 +658,16 @@ if __name__ == "__main__":
             if check_cameras(mtracks[i], mtracks[i_other]) or not temporal_compatibility(mtracks[i], mtracks[i_other], t_compa):
                 continue
 
-            s = multicam_track_similarity(mtracks[i], mtracks[i_other], "average", sim)
+            s = multicam_track_similarity(
+                mtracks[i], mtracks[i_other], "average", sim)
             if s >= min_sim:
                 heapq.heappush(sorted_candidates, (-s, timestamp, i, i_other))
 
         count += 1
 
     # drop invalidated mtracks and remove tracks with less than 2 cameras
-    mtracks = [mtracks[i] for i in remaining_tracks if len(mtracks[i].cams) > 1]
+    mtracks = [mtracks[i]
+               for i in remaining_tracks if len(mtracks[i].cams) > 1]
 
     # reindex final tracks and finalize them
     for i, mtrack in enumerate(mtracks):
@@ -459,14 +676,19 @@ if __name__ == "__main__":
     # save per camera results
     pkl_paths = []
     for i, pkl_path in enumerate(PICKLED_TRACKLETS):
-        mtmc_pkl_path = os.path.join(OUTPUT_DIR, f"{i}_{os.path.split(pkl_path)[1]}")
+        mtmc_pkl_path = os.path.join(
+            OUTPUT_DIR, f"{i}_{os.path.split(pkl_path)[1]}")
         pkl_paths.append(mtmc_pkl_path)
     csv_paths = [pth.split(".")[0] + ".csv" for pth in pkl_paths]
     txt_paths = [pth.split(".")[0] + ".txt" for pth in pkl_paths]
 
-    save_tracklets_per_cam(mtracks, pkl_paths)
-    save_tracklets_csv_per_cam(mtracks, csv_paths)
-    save_tracklets_txt_per_cam(mtracks, txt_paths)
+    #save_tracklets_per_cam(mtracks, pkl_paths)
+    #save_tracklets_csv_per_cam(mtracks, csv_paths)
+    #save_tracklets_txt_per_cam(mtracks, txt_paths)
 
     print(len(mtracks))
     print(len(all_tracks))
+    print()
+
+    annotate_video_mtmc('./Data/train/S03/c011/vdo.avi',
+                        '../results/vdo_c011_tracklets.avi', mtracks, 1)
