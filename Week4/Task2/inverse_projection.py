@@ -564,7 +564,7 @@ if __name__ == "__main__":
         track2: Tracklet = all_tracks[j]
         
         if positional_match(track1, track2, visualization):
-            merge_tracks(track1, track2)
+            pass
 
     # precompute similarities between tracks
     f = torch.Tensor(np.stack([tr.mean_feature for tr in all_tracks]))
