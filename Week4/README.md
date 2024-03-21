@@ -51,9 +51,13 @@ python tracking_speed.py [--store] [--vizualize] [--o_name OUTPUT_NAME] [--detec
 cd Week4/Task2
 ```
 
-Run mot
+This Python script performs multi-camera tracking using the provided data. It synchronizes tracklets from multiple cameras, computes track similarities, and generates CSV files containing tracklet information. Additionally, it annotates input videos with tracklet information and saves the annotated videos.
 
-TODO
+## Dependencies 
+Please, install the following GitHub Modules to be able to run the code:
+[Vehicle MOT]((https://github.com/regob/vehicle_mtmc/tree/master?tab=readme-ov-file)
+[ResNet RE-ID Network]([URL](https://github.com/regob/vehicle_reid))
+
 
 Put training data inside Task2 folder like this:
 ```bash
@@ -120,7 +124,7 @@ python concatenate_csv.py
 ```
 
 And run trackeval
-TODO
+
 
 
 [![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/colored.png)](#requirements)
