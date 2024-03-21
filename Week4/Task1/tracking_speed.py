@@ -17,10 +17,9 @@ DEFAULT_FILE_OUT = "kalman"
 DEFAULT_STOP_THRESHOLD = 10
 DEFAULT_SPEED_THRESHOLD = 3
 
-# Read gt file
-VIDEO_PATH = "../../Data/AICity_data_S03_C010/AICity_data/train/S03/c010/vdo.avi"
-
-
+#VIDEO_PATH = "../../Data/AICity_data_S03_C010/AICity_data/train/S03/c010/vdo.avi"
+VIDEO_PATH = "../../Data/custom2.avi"
+#VIDEO_PATH = "../../Data/custom.avi"
 def get_centroid(box: np.ndarray):  # box [xmin,ymin,xmax,ymax]
     x_center = int((box[0][0] + box[0][2]) / 2)
     y_center = int((box[0][1] + box[0][3]) / 2)
@@ -50,6 +49,7 @@ class KalmanSpeed:
         self.coordinates = defaultdict(lambda: deque(maxlen=video_info.fps))
         self.stop_threshold = stop_threshold
         self.speed_threshold = speed_threshold
+        self.upper_speed_threshold = 200
 
     def next_frame(self):
         self.n_frame += 1
@@ -122,11 +122,12 @@ class KalmanSpeed:
             speed = distance / time * 3.6
             if speed < self.speed_threshold:
                 count_speed[tracker_id] += 1
-
+            elif speed > self.upper_speed_threshold:
+                return None  # If the speed is too high, we don't want to consider it (outlier)
             return speed
         return None
 
-    def draw_tracking_result(self, frame_img, count_speed, corners):
+    def draw_tracking_result(self, frame_img, count_speed, corners, new_ids, velocities_historial):
         img_draw = frame_img.copy()
 
         for track in self.kalman_tracker.trackers:
@@ -184,33 +185,28 @@ class KalmanSpeed:
             # Write Text with speed if in source zone, otherwise only write ID
 
             if speed is not None:
-                text = f"{track.id} {speed:.2f} km/h" if speed > 0 else f"{track.id}"
-                img_draw = cv2.putText(
-                    img_draw,
-                    text,
-                    (int(box[0]), int(box[1])),
-                    cv2.FONT_HERSHEY_DUPLEX,
-                    1,
-                    (0, 0, 0),
-                    2,
-                )
-            else:
-                text = f"{track.id}"
-                img_draw = cv2.putText(
-                    img_draw,
-                    text,
-                    (int(box[0]), int(box[1])),
-                    cv2.FONT_HERSHEY_DUPLEX,
-                    1,
-                    (0, 0, 0),
-                    2,
-                )
+                if track.id not in new_ids:
+                    new_id = max(new_ids.values()) + 1 if new_ids else 1
+                    new_ids[track.id] = new_id
+                    velocities_historial[new_id] = [speed]
+                else:
+                    velocities_historial[new_ids[track.id]].append(speed)
+                text = f"{new_ids[track.id]} {speed:.2f} km/h" if speed > 0 else f"{new_ids[track.id]}"
 
-            for detection in track.history:
-                detection_center = get_centroid(detection)
-                img_draw = cv2.circle(
-                    img_draw, detection_center, 3, track.visualization_color, -1
+                img_draw = cv2.putText(
+                    img_draw,
+                    text,
+                    (int(box[0]), int(box[1])),
+                    cv2.FONT_HERSHEY_DUPLEX,
+                    1,
+                    (0, 0, 0) if speed < 120 else (0, 0, 255),  # If speed is > 120, paint as red the text
+                    2,
                 )
+                for detection in track.history:
+                    detection_center = get_centroid(detection)
+                    img_draw = cv2.circle(
+                        img_draw, detection_center, 3, track.visualization_color, -1
+                    )
 
         return img_draw
 
@@ -242,6 +238,9 @@ class KalmanSpeed:
 
         num_frame = 0
         count_speed = defaultdict(int)
+        new_ids = {}
+        velocities_historial = {}
+
         while True:
             ret, frame_img = cap.read()
             if not ret:
@@ -250,7 +249,7 @@ class KalmanSpeed:
             # Predict
             self.update(frame_boxes[num_frame])
             # Draw
-            img_draw = self.draw_tracking_result(frame_img, count_speed, corners)
+            img_draw = self.draw_tracking_result(frame_img, count_speed, corners, new_ids, velocities_historial)
 
             if vizualize:
                 cv2.imshow(
@@ -267,8 +266,12 @@ class KalmanSpeed:
                 out.write(img_draw)
 
             num_frame += 1
-
-        save_json(self.kalman_tracker_dict, results_path + file_out + ".json")
+        # Print the average speed of each car and the maximum speed
+        for id in velocities_historial:
+            print(f"Car {id} average speed: {sum(velocities_historial[id])/len(velocities_historial[id])}")
+            print(f"Car {id} maximum speed: {max(velocities_historial[id])}")
+            print("-------------------")
+        #save_json(self.kalman_tracker_dict, results_path + file_out + ".json")
 
 
 if __name__ == "__main__":
@@ -328,8 +331,14 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    source = np.array([[550, 150], [1100, 150], [200, 1050], [1900, 1050]])
-    target = np.array([[0, 0], [15, 0], [0, 200], [15, 200]])
+    # source = np.array([[550, 150], [1100, 150], [200, 1050], [1900, 1050]])
+    # target = np.array([[0, 0], [15, 0], [0, 200], [15, 200]])
+
+    source = np.array([[510, 300], [800, 300], [40, 600], [1250, 600]])
+    target = np.array([[0, 0], [40, 0], [0, 250], [40, 250]])
+
+    # source = np.array([[770, 720], [1000, 720], [570, 1000], [1120, 1000]])
+    # target = np.array([[0, 0], [8, 0], [0, 50], [8, 50]])
     corners = [source[0][0], source[1][0], source[2][0], source[3][1]]
     vt = ViewTransformer(source, target)
     kalmanSpeedTracking = KalmanSpeed(

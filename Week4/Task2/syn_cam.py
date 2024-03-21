@@ -9,8 +9,8 @@ def load_pickle(pth: str):
         res = pickle.load(f)
     return res
 
-FOLDER_PATH = './Data/aic19-track1-mtmc-train/train/S03/'
-OUTPUTS_FOLDER = './Week4/outputs/'
+FOLDER_PATH = './Data/train/S03/'
+OUTPUTS_FOLDER = '../outputs/'
 OFFSETS = {'c010': 8.715,
 'c011': 8.457,
 'c012': 5.879,

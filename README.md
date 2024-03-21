@@ -24,4 +24,4 @@ The contents of the second week are in the folder `Week2`. The `README` file for
 The contents of the third week are in the folder `Week3`. The `README` file for this week can be found in [here](Week3/README.md) 
 
 ## Week 4
-The contents of the fourth week are in the folder `Week4`. The `README` file for this week can be found in [here](Week4/README.md) 
+The contents of the fourth week are in the folder `Week4`. The `README` file for this week can be found in [here](Week4/README.md) and the slides for the presentation are in [here](https://docs.google.com/presentation/d/10VDLBLFMMHO0nclsEaviv0D4Ecg4YZMojydlyNfZuxs/edit?usp=sharing).
