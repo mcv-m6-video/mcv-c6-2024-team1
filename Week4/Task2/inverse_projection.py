@@ -30,8 +30,8 @@ EARTH_RADIUS = 6371001
 DEG2RAD = np.pi / 180
 MTMC_TRACKLETS_NAME = "mtmc_tracklets"
 OUTPUT_DIR = '../results'
-CSV_TRACKLETS = ['c001_tracklet.csv', 'c002_tracklet.csv',
-                 'c003_tracklet.csv', 'c004_tracklet.csv', 'c005_tracklet.csv']
+CSV_TRACKLETS = ['c010_tracklet.csv', 'c011_tracklet.csv', 'c012_tracklet.csv',
+                 'c013_tracklet.csv', 'c014_tracklet.csv', 'c015_tracklet.csv']
 
 
 class MultiCameraTracklet:
@@ -543,8 +543,8 @@ def annotate_video_mtmc(video_in, video_out, multicam_tracks, cam_idx, **kwargs)
 
 
 if __name__ == "__main__":
-    sequence_name = "S01"
-    camera_names = ["c001", "c002", "c003", "c004", "c005"]
+    sequence_name = "S03"
+    camera_names = ["c010", "c011", "c012", "c013", "c014", "c015"]
 
     bg_image_path = f"./Week4/VisualizationData/{sequence_name}/bg.png"
     # Write top left and bottom right GPS coordinates of the image in 2 lines
