@@ -30,7 +30,8 @@ EARTH_RADIUS = 6371001
 DEG2RAD = np.pi / 180
 MTMC_TRACKLETS_NAME = "mtmc_tracklets"
 OUTPUT_DIR = '../results'
-PICKLED_TRACKLETS = ['pickle_tracklet.pkl']
+CSV_TRACKLETS = ['c010_tracklet.csv', 'c011_tracklet.csv', 'c012_tracklet.csv',
+                 'c013_tracklet.csv', 'c014_tracklet.csv', 'c015_tracklet.csv']
 
 
 class MultiCameraTracklet:
@@ -96,6 +97,15 @@ def read_calibration(path):
     return matrix
 
 
+def get_color(number):
+    """ Converts an integer number to a color """
+    blue = int(number*30 % 256)
+    green = int(number*103 % 256)
+    red = int(number*50 % 256)
+
+    return red, blue, green
+
+
 class MultiCameraTrackScene:
     def __init__(self, tl_coords: ArrayLike | tuple[float, float], br_coords: ArrayLike | tuple[float, float], image_path: Path | str, offset: ArrayLike | tuple[float, float] = (0, 0)):
         self.tl_corner = np.array(tl_coords)
@@ -140,14 +150,13 @@ class MultiCameraTrackScene:
         return self.objects[id]
 
     def reset(self):
-        for obj in self.objects:
-            if "cam" not in obj:
+        for obj in list(self.objects.keys()):
+            if type(obj) != str or "cam" not in obj:
                 self.objects.pop(obj)
 
     def plot(self, show_image=True, show_fovs: list[int | str] = None):
         if show_fovs is None:
             show_fovs = self.cameras.keys()
-        print("Plotting:")
         if show_image:
             image = self.bg_image.copy()
         else:
@@ -160,28 +169,26 @@ class MultiCameraTrackScene:
                 self.coords_to_pixels_factor
             # print(map_pos)
             if type(id) == str:
-                num = re.match(r"\d+", id).group()
-                if num not in show_fovs:
-                    continue
-            if id[:5] == "cam0b":
-                color = (255, 0, 0)
-            if id[:5] == "cam1b":
-                color = (0, 255, 0)
-            if id[:5] == "cam2b":
-                color = (0, 0, 255)
-            if id[:5] == "cam3b":
-                color = (0, 255, 255)
-            if id[:5] == "cam4b":
-                color = (255, 0, 255)
-            if id[:5] == "cam5b":
-                color = (255, 255, 0)
-            if type(id) == int:
-                color = np.round(mpl.colormaps["tab20"](
-                    id) * 255).astype(np.uint8)[::-1]
-            cv2.circle(image, np.int32(
-                [map_pos[0], map_pos[1]]), radius=5, color=color, thickness=-1)
+                if len(num := re.findall(r"cam(\d+)b", id)) > 0:
+                    if int(num[0]) not in show_fovs:
+                        continue
+                if id[:5] == "cam0b":
+                    color = (255, 0, 0)
+                if id[:5] == "cam1b":
+                    color = (0, 255, 0)
+                if id[:5] == "cam2b":
+                    color = (0, 0, 255)
+                if id[:5] == "cam3b":
+                    color = (0, 255, 255)
+                if id[:5] == "cam4b":
+                    color = (255, 0, 255)
+                if id[:5] == "cam5b":
+                    color = (255, 255, 0)
+            elif type(id) == int:
+                color = get_color(id)
+            cv2.circle(image, np.int32([map_pos[0], map_pos[1]]), radius=5, color=color, thickness=-1)
         cv2.imshow("ZenithalView", image)
-        cv2.waitKey(1)
+        cv2.waitKey(2000)
 
 
 def get_bbox_center(bbox):
@@ -195,17 +202,20 @@ def positional_match(track1: Tracklet, track2: Tracklet, scene: MultiCameraTrack
     time_intersecting = True if frame_intersect_start < frame_intersect_end else False
 
     if time_intersecting:
+        print(f"Intersecting during {frame_intersect_end - frame_intersect_start} frames.")
         frame_matches = 0
+        processed_frames = 0
+        print(f"{track1.frames=}")
+        print(f"{track2.frames=}")
         for frame in range(frame_intersect_start, frame_intersect_end + 1):
             track1_cam_frame = (frame - track1.global_start)
+            print(f"{track1_cam_frame=}")
             track2_cam_frame = (frame - track2.global_start)
-            if track1_cam_frame in track1.frames and track2_cam_frame in track2.frames:
-                bbox1_center = get_bbox_center(
-                    track1.bboxes[track1.frames.index(track1_cam_frame)])
-                bbox2_center = get_bbox_center(
-                    track2.bboxes[track2.frames.index(track2_cam_frame)])
-            else:
-                continue
+            print(f"{track2_cam_frame=}")
+            processed_frames += 1
+            bbox1_center = get_bbox_center(track1.bboxes[track1.frames[track1_cam_frame]])
+            bbox2_center = get_bbox_center(track2.bboxes[track2.frames[track2_cam_frame]])
+            
             pos1 = scene.add_object(track1.track_id, track1.cam, bbox1_center)
             pos2 = scene.add_object(track2.track_id, track2.cam, bbox2_center)
             distance = np.sqrt(
@@ -223,39 +233,38 @@ def positional_match(track1: Tracklet, track2: Tracklet, scene: MultiCameraTrack
 
             scene.plot(show_image=False, show_fovs=[track1.cam, track2.cam])
             scene.reset()
-
-        if frame_matches / (frame_intersect_end - frame_intersect_start) > 0.8:
+        
+        print(f"{processed_frames} have been processed.")
+        if frame_matches / (frame_intersect_end - frame_intersect_start) > 0.4:
+            print(f"Matched {i, j} through overlap")
             return True
         else:
+            print(f"Not enough overlap between {i, j}")
             return False
     else:
+        print("Non intersecting")
         first_track: Tracklet = min(track1, track2, key=lambda t: t.global_end)
         second_track: Tracklet = max(
             track1, track2, key=lambda t: t.global_end)
         # TODO: Use speed estimation part?
         last_bbx_centers = map(get_bbox_center, first_track.bboxes[-5:])
-        last_positions = np.array(
-            map(lambda x: scene.add_object(x, first_track.cam, x), last_bbx_centers))
-        last_velocities = [last_positions[i] - last_positions[i-1]
-                           for i in range(1, len(last_positions))]
+        last_positions = [scene.add_object(i, first_track.cam, center) for i, center in enumerate(last_bbx_centers)]
+        last_velocities = [last_positions[i] - last_positions[i-1] for i in range(1, len(last_positions))]
         estimated_velocity = np.mean(last_velocities, axis=0)
 
         frame_diff = frame_intersect_start - frame_intersect_end
         estimated_position = estimated_velocity * \
             frame_diff + last_positions[-1]
 
-        track2_start_position = scene.add_object(
-            1, second_track.cam, get_bbox_center(second_track.bboxes[0]))
-        distance = np.sqrt(np.sum(
-            ((estimated_position - track2_start_position) * scene.coords_to_meters_factor)**2))
+        track2_start_position = scene.add_object("t2", second_track.cam, get_bbox_center(second_track.bboxes[0]))
+        distance = np.sqrt(np.sum(((estimated_position - track2_start_position) * scene.coords_to_meters_factor)**2))
 
+        scene.plot(show_image=False, show_fovs=[first_track.cam, second_track.cam])
         scene.reset()
-        return distance < DISTANCE_THRESHOLD
-
-
-def merge_tracks(track1: Tracklet, track2: Tracklet):
-    pass
-
+        if distance < DISTANCE_THRESHOLD:
+            print(f"Matched {i, j} through speed extrapolation")
+            return True
+        return False
 
 def temporal_compatibility(t1, t2, matrix):
     for tr1 in t1.tracks:
@@ -286,15 +295,6 @@ def get_tracks_by_cams(multicam_tracks: List[MultiCameraTracklet]) -> List[List[
     return tracks_per_cam
 
 
-def save_tracklets(tracklets, path, max_features=None):
-    """Saves tracklets using pickle (with re-id features)"""
-    if max_features is not None:
-        for tracklet in tracklets:
-            tracklet.cluster_features(max_features)
-    with open(path, "wb") as fp:
-        pickle.dump(tracklets, fp, protocol=pickle.HIGHEST_PROTOCOL)
-
-
 def to_detections(tracklets):
     res = {
         "frame": [],
@@ -316,12 +316,12 @@ def to_detections(tracklets):
 
     for tracklet in tracklets:
         res["frame"].extend(tracklet.frames)
+        res["track_id"].extend([tracklet.track_id] * len(tracklet.frames))
         for x, y, w, h in tracklet.bboxes:
             res["bbox_topleft_x"].append(int(x))
             res["bbox_topleft_y"].append(int(y))
             res["bbox_width"].append(int(round(w)))
             res["bbox_height"].append(int(round(h)))
-        res["track_id"].extend([tracklet.track_id] * len(tracklet.frames))
         for static_f, val in tracklet.static_attributes.items():
             values = val if isinstance(val, list) else [
                 val] * len(tracklet.frames)
@@ -339,6 +339,17 @@ def to_detections(tracklets):
             print(f"Items in column {k}: {len(v)}")
         raise ValueError("Error: not all column lengths are equal.")
 
+    # Sort by frame
+    zipped_res = zip(res["frame"], res["bbox_topleft_x"], res["bbox_topleft_y"],
+                     res["bbox_width"], res["bbox_height"], res["track_id"])
+
+    # Sort the zipped res based on the "frame" values
+    sorted_res = sorted(zipped_res, key=lambda x: x[0])
+
+    # Unpack the sorted res into separate lists
+    res["frame"], res["bbox_topleft_x"], res["bbox_topleft_y"], res["bbox_width"], \
+        res["bbox_height"], res["track_id"] = zip(*sorted_res)
+
     return res
 
 
@@ -349,36 +360,10 @@ def save_tracklets_csv(tracklets, path):
     df.to_csv(path, index=False)
 
 
-def save_tracklets_txt(tracklets, path):
-    """Save tracklets as detections in the MOTChallenge format"""
-    res = to_detections(tracklets)
-    res["frame"] = list(map(lambda x: x + 1, res["frame"]))
-    df = pd.DataFrame(res)
-    df = df[["frame", "track_id", "bbox_topleft_x",
-             "bbox_topleft_y", "bbox_width", "bbox_height"]]
-    df["conf"] = 1
-    df["x"] = -1
-    df["y"] = -1
-    df["z"] = -1
-    df.to_csv(path, index=False, header=False)
-
-
-def save_tracklets_per_cam(multicam_tracks: List[MultiCameraTracklet], save_paths_per_cam: List[str]):
-    tracks_per_cam = get_tracks_by_cams(multicam_tracks)
-    for tracks, path in zip(tracks_per_cam, save_paths_per_cam):
-        save_tracklets(tracks, path)
-
-
 def save_tracklets_csv_per_cam(multicam_tracks: List[MultiCameraTracklet], save_paths_per_cam: List[str]):
     tracks_per_cam = get_tracks_by_cams(multicam_tracks)
     for tracks, path in zip(tracks_per_cam, save_paths_per_cam):
         save_tracklets_csv(tracks, path)
-
-
-def save_tracklets_txt_per_cam(multicam_tracks: List[MultiCameraTracklet], save_paths_per_cam: List[str]):
-    tracks_per_cam = get_tracks_by_cams(multicam_tracks)
-    for tracks, path in zip(tracks_per_cam, save_paths_per_cam):
-        save_tracklets_txt(tracks, path)
 
 
 STATIC_ATTRIBUTES = {
@@ -422,11 +407,6 @@ def annotate(img_pil, id_label, attributes, tx, ty, bx, by, color, font):
     textcoords = draw.multiline_textbbox((tx, by), text, font=font)
 
     txt_y = ty - (textcoords[3] - textcoords[1]) - 4
-    # if the annotation below the box stretches out of the image, put it above
-    #if textcoords[3] >= img_pil.size[1]:
-    #    txt_y = ty - (textcoords[3] - textcoords[1]) - 4
-    #else:
-    #    txt_y = by
 
     # draw rectangle in the background
     coords = draw.multiline_textbbox((tx, txt_y), text, font=font)
@@ -562,41 +542,29 @@ def annotate_video_mtmc(video_in, video_out, multicam_tracks, cam_idx, **kwargs)
     annotate_video_with_tracklets(video_in, video_out, tracks, **kwargs)
 
 
-def load_mtmc_tracklets(path: str):
-    with open(path, "rb") as f:
-        res = pickle.load(f)
-    return res
-
-
-def save_mtmc_tracklets(multicam_tracks: List[MultiCameraTracklet], path: str):
-    with open(path, "wb") as f:
-        pickle.dump(multicam_tracks, f, protocol=pickle.HIGHEST_PROTOCOL)
-
-
 if __name__ == "__main__":
     sequence_name = "S03"
     camera_names = ["c010", "c011", "c012", "c013", "c014", "c015"]
 
-    bg_image_path = f"../VisualizationData/{sequence_name}/bg.png"
+    bg_image_path = f"./Week4/VisualizationData/{sequence_name}/bg.png"
     # Write top left and bottom right GPS coordinates of the image in 2 lines
-    corners_path = f"../VisualizationData/{sequence_name}/corners.txt"
+    corners_path = f"./Week4/VisualizationData/{sequence_name}/corners.txt"
     tl_corner, br_corner = read_corners(corners_path)
-    visualization = MultiCameraTrackScene(
-        tl_corner, br_corner, bg_image_path, offset=(0.0002, 0.0005))
-
+    visualization = MultiCameraTrackScene(tl_corner, br_corner, bg_image_path, offset=(0.0002, 0.0005))
+    
     for i, name in enumerate(camera_names):
-        calibration_path = f"./Data/train/{sequence_name}/{name}/calibration.txt"
+        calibration_path = f"./Data/aic19-track1-mtmc-train/train/{sequence_name}/{name}/calibration.txt"
         visualization.add_camera(i, read_calibration(calibration_path))
 
     all_tracks, t_compa, global_frames = syncronize_trackers(camera_names)
 
     # Check position coincidences
-    # for (i, j) in set(map(frozenset, np.argwhere(t_compa == 1))):
-    #    track1: Tracklet = all_tracks[i]
-    #    track2: Tracklet = all_tracks[j]
-    #
-    #    if positional_match(track1, track2, visualization):
-    #        merge_tracks(track1, track2)
+    for (i, j) in set(map(frozenset, np.argwhere(t_compa == 1))):
+        track1: Tracklet = all_tracks[i]
+        track2: Tracklet = all_tracks[j]
+        
+        if positional_match(track1, track2, visualization):
+            pass
 
     # precompute similarities between tracks
     f = torch.Tensor(np.stack([tr.mean_feature for tr in all_tracks]))
@@ -662,21 +630,23 @@ if __name__ == "__main__":
         mtrack.id = i
 
     # save per camera results
-    pkl_paths = []
-    for i, pkl_path in enumerate(PICKLED_TRACKLETS):
-        mtmc_pkl_path = os.path.join(
-            OUTPUT_DIR, f"{i}_{os.path.split(pkl_path)[1]}")
-        pkl_paths.append(mtmc_pkl_path)
-    csv_paths = [pth.split(".")[0] + ".csv" for pth in pkl_paths]
-    txt_paths = [pth.split(".")[0] + ".txt" for pth in pkl_paths]
+    csv_paths = []
+    for i, csv_path in enumerate(CSV_TRACKLETS):
+        mtmc_csv_path = os.path.join(
+            OUTPUT_DIR, f"{i}_{os.path.split(csv_path)[1]}")
+        csv_paths.append(mtmc_csv_path)
 
-    #save_tracklets_per_cam(mtracks, pkl_paths)
-    #save_tracklets_csv_per_cam(mtracks, csv_paths)
-    #save_tracklets_txt_per_cam(mtracks, txt_paths)
+    save_tracklets_csv_per_cam(mtracks, csv_paths)
 
-    print(len(mtracks))
-    print(len(all_tracks))
-    print()
-
+    annotate_video_mtmc('./Data/train/S03/c010/vdo.avi',
+                        '../results/vdo_c010_tracklets.avi', mtracks, 0)
     annotate_video_mtmc('./Data/train/S03/c011/vdo.avi',
                         '../results/vdo_c011_tracklets.avi', mtracks, 1)
+    annotate_video_mtmc('./Data/train/S03/c012/vdo.avi',
+                        '../results/vdo_c012_tracklets.avi', mtracks, 2)
+    annotate_video_mtmc('./Data/train/S03/c013/vdo.avi',
+                        '../results/vdo_c013_tracklets.avi', mtracks, 3)
+    annotate_video_mtmc('./Data/train/S03/c014/vdo.avi',
+                        '../results/vdo_c014_tracklets.avi', mtracks, 4)
+    annotate_video_mtmc('./Data/train/S03/c015/vdo.avi',
+                        '../results/vdo_c015_tracklets.avi', mtracks, 5)
