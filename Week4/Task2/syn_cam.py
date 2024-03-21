@@ -66,6 +66,7 @@ def syncronize_trackers(cameras: list[str]):
             track.track_id = len(all_tracks)
             track.global_start = int(( track.frames[0] / cam_tracks.fps + cam_tracks.offset)*fps_minimum_OFFSET)
             track.global_end = int((track.frames[-1] / cam_tracks.fps + cam_tracks.offset)*fps_minimum_OFFSET)
+            track.global_frames = [int((n_frame / cam_tracks.fps + cam_tracks.offset)*fps_minimum_OFFSET) for n_frame in track.frames]
             all_tracks.append(track)
     n = len(all_tracks)
 
