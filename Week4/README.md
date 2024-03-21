@@ -55,8 +55,8 @@ This Python script performs multi-camera tracking using the provided data. It sy
 
 ## Dependencies 
 Please, install the following GitHub Modules to be able to run the code:
-[Vehicle MOT]((https://github.com/regob/vehicle_mtmc/tree/master?tab=readme-ov-file)
-[ResNet RE-ID Network]([URL](https://github.com/regob/vehicle_reid))
+-- [Vehicle MOT]([URL](https://github.com/regob/vehicle_mtmc/tree/master?tab=readme-ov-file))
+-- [ResNet RE-ID Network]([URL](https://github.com/regob/vehicle_reid))
 
 
 Put training data inside Task2 folder like this:
