@@ -123,6 +123,11 @@ To compute the IDF1 first concatenate the tracklets files and gt files with:
 python concatenate_csv.py
 ```
 
+Then, convert the outputted .csv files to the required MOT challenge format using
+```
+python trackeval_formatting.py
+```
+
 Finally, run trackeval. You can refer to last week's [README](../Week3/README.md) to see the instructions to run this part. 
 
 
