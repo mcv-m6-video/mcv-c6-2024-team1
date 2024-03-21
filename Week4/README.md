@@ -53,10 +53,10 @@ cd Week4/Task2
 
 This Python script performs multi-camera tracking using the provided data. It synchronizes tracklets from multiple cameras, computes track similarities, and generates CSV files containing tracklet information. Additionally, it annotates input videos with tracklet information and saves the annotated videos.
 
-## Dependencies 
+### Dependencies 
 Please, install the following GitHub Modules to be able to run the code:
--- [Vehicle MOT]([URL](https://github.com/regob/vehicle_mtmc/tree/master?tab=readme-ov-file))
--- [ResNet RE-ID Network]([URL](https://github.com/regob/vehicle_reid))
+* [Vehicle MOT](https://github.com/regob/vehicle_mtmc/tree/master?tab=readme-ov-file)
+* [ResNet RE-ID Network](https://github.com/regob/vehicle_reid)
 
 
 Put training data inside Task2 folder like this:
@@ -113,17 +113,18 @@ Data
         └───c040
 ```
 
+To run the code, execute the following command, which will save th camera tracklets csv's and the videos for visualization:
 ```bash
 python inverse_projection.py
 ```
-This will save th camera tracklets csv's and the videos for visualization
 
 To compute the IDF1 first concatenate the tracklets files and gt files with:
 ```bash
 python concatenate_csv.py
 ```
 
-And run trackeval
+Finally, run trackeval with the following command:
+
 
 
 
