@@ -25,7 +25,7 @@ from mot.tracklet import Tracklet
 
 
 DISTANCE_THRESHOLD = 5
-BREAK_DISTANCE = 15
+BREAK_DISTANCE = 0.001
 EARTH_RADIUS = 6371001
 DEG2RAD = np.pi / 180
 MTMC_TRACKLETS_NAME = "mtmc_tracklets"
@@ -103,7 +103,7 @@ def get_color(number):
     green = int(number*103 % 256)
     red = int(number*50 % 256)
 
-    return blue, red, green
+    return red, blue, green
 
 
 class MultiCameraTrackScene:
@@ -173,22 +173,22 @@ class MultiCameraTrackScene:
                     if int(num[0]) not in show_fovs:
                         continue
                 if id[:5] == "cam0b":
-                    color = (255, 0, 0) # 10: blue
+                    color = (255, 0, 0)
                 if id[:5] == "cam1b":
-                    color = (0, 255, 0) # 11: green
+                    color = (0, 255, 0)
                 if id[:5] == "cam2b":
-                    color = (0, 0, 255) # 12: red
+                    color = (0, 0, 255)
                 if id[:5] == "cam3b":
-                    color = (0, 255, 255) # 13: yellow
+                    color = (0, 255, 255)
                 if id[:5] == "cam4b":
-                    color = (255, 0, 255) # 14: purple
+                    color = (255, 0, 255)
                 if id[:5] == "cam5b":
-                    color = (255, 255, 0) # 15: cyan
+                    color = (255, 255, 0)
             elif type(id) == int:
                 color = get_color(id)
             cv2.circle(image, np.int32([map_pos[0], map_pos[1]]), radius=5, color=color, thickness=-1)
         cv2.imshow("ZenithalView", image)
-        cv2.waitKey(100)
+        cv2.waitKey(2000)
 
 
 def get_bbox_center(bbox):
@@ -205,15 +205,17 @@ def positional_match(track1: Tracklet, track2: Tracklet, scene: MultiCameraTrack
         print(f"Intersecting during {frame_intersect_end - frame_intersect_start} frames.")
         frame_matches = 0
         processed_frames = 0
-        #print(f"{track1.frames=}")
-        #print(f"{track2.frames=}")
+        print(f"{track1.frames=}")
+        print(f"{track2.frames=}")
         for frame in range(frame_intersect_start, frame_intersect_end + 1):
-            if frame in track1.global_frames and frame in track2.global_frames:
-                processed_frames += 1
-                bbox1_center = get_bbox_center(track1.bboxes[track1.global_frames.index(frame)])
-                bbox2_center = get_bbox_center(track2.bboxes[track2.global_frames.index(frame)])
-            else:
-                continue
+            track1_cam_frame = (frame - track1.global_start)
+            print(f"{track1_cam_frame=}")
+            track2_cam_frame = (frame - track2.global_start)
+            print(f"{track2_cam_frame=}")
+            processed_frames += 1
+            bbox1_center = get_bbox_center(track1.bboxes[track1.frames[track1_cam_frame]])
+            bbox2_center = get_bbox_center(track2.bboxes[track2.frames[track2_cam_frame]])
+            
             pos1 = scene.add_object(track1.track_id, track1.cam, bbox1_center)
             pos2 = scene.add_object(track2.track_id, track2.cam, bbox2_center)
             distance = np.sqrt(
@@ -553,23 +555,8 @@ if __name__ == "__main__":
     for i, name in enumerate(camera_names):
         calibration_path = f"./Data/aic19-track1-mtmc-train/train/{sequence_name}/{name}/calibration.txt"
         visualization.add_camera(i, read_calibration(calibration_path))
-    visualization.plot(show_image=False)
-    cv2.waitKey(0)
 
     all_tracks, t_compa, global_frames = syncronize_trackers(camera_names)
-
-    visualize_cameras = [0, 2, 4]
-    for frame, tracks  in global_frames.items():
-        for track_id, cam_id in tracks:
-            if cam_id not in visualize_cameras:
-                continue
-            track: Tracklet = all_tracks[track_id]
-            if frame in track.global_frames:
-                bbox = track.bboxes[track.global_frames.index(frame)]
-                visualization.add_object(track_id, cam_id, get_bbox_center(bbox))
-        visualization.plot(show_image=False, show_fovs=visualize_cameras)
-        visualization.reset()
-    exit()
 
     # Check position coincidences
     for (i, j) in set(map(frozenset, np.argwhere(t_compa == 1))):
