@@ -9,7 +9,7 @@ from typing import Dict
 
 from torch.utils.data import DataLoader
 
-from early_stopping import EarlyStopping
+from utils.early_stopping import EarlyStopping
 from datasets.HMDB51Dataset import HMDB51Dataset
 from datasets.HMDB51DatasetInference import HMDB51DatasetInference
 from train import create_datasets, create_optimizer, create_dataloaders, train, evaluate, print_model_summary

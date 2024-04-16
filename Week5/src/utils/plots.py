@@ -33,10 +33,8 @@ class Plots:
         plt.tight_layout()
 
         # Create directory if it doesn't exist
-        output_dir = '../plots/'
+        output_dir = '../../plots/'
         os.makedirs(output_dir, exist_ok=True)
 
         # Save the plot as an image
         plt.savefig(os.path.join(output_dir, f'{name}.png'))
-
-        # Show the plot (optional)
