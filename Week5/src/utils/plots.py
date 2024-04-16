@@ -33,7 +33,7 @@ class Plots:
         plt.tight_layout()
 
         # Create directory if it doesn't exist
-        output_dir = '../../plots/'
+        output_dir = '/ghome/group01/mcv-c6-2024-team1/Week5/plots/'
         os.makedirs(output_dir, exist_ok=True)
 
         # Save the plot as an image
