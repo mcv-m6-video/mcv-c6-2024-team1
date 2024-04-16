@@ -5,8 +5,9 @@
 #SBATCH --gres gpu:1 # Para pedir Pascales MAX 8
 #SBATCH -o logs/%x_%u_%j.out # File to which STDOUT will be written
 #SBATCH -e logs/%x_%u_%j.err # File to which STDERR will be written
-python src/multiview_inference.py ./frames \
+python src/multiview_spatial_inference.py ./frames \
     --model-path ./weights/weights_multiview_inference_frozen.pth \
     --mode evaluate \
     --temporal-stride 2 \
-    --num-clips 10
+    --num-clips 3 \
+    --five-crop-size 120

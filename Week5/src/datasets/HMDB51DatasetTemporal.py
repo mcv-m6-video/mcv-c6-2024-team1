@@ -1,7 +1,6 @@
 """ Dataset class for HMDB51 dataset. """
 
 import os
-import random
 from enum import Enum
 
 from glob import glob, escape
@@ -13,7 +12,7 @@ from torchvision.io import read_image
 from torchvision.transforms import v2
 
 
-class HMDB51DatasetInference(Dataset):
+class HMDB51DatasetTemporal(Dataset):
     """
     Dataset class for HMDB51 dataset.
     """
@@ -94,7 +93,7 @@ class HMDB51DatasetInference(Dataset):
         split_suffix = "_test_split" + str(self.split.value) + ".txt"
 
         annotation = []
-        for class_name in HMDB51DatasetInference.CLASS_NAMES:
+        for class_name in HMDB51DatasetTemporal.CLASS_NAMES:
             annotation_file = os.path.join(self.annotations_dir, class_name + split_suffix)
             df = pd.read_csv(annotation_file, sep=" ").dropna(axis=1, how='all') # drop empty columns
             df.columns = ['video_name', 'train_or_test']
@@ -102,7 +101,7 @@ class HMDB51DatasetInference(Dataset):
             df = df.rename(columns={'video_name': 'video_path'})
             df['video_path'] = os.path.join(self.videos_dir, class_name, '') + df['video_path'].replace('\.avi$', '', regex=True)
             df = df.rename(columns={'train_or_test': 'class_id'})
-            df['class_id'] = HMDB51DatasetInference.CLASS_NAMES.index(class_name)
+            df['class_id'] = HMDB51DatasetTemporal.CLASS_NAMES.index(class_name)
             annotation += [df]
 
         return pd.concat(annotation, ignore_index=True)
@@ -115,7 +114,7 @@ class HMDB51DatasetInference(Dataset):
         Returns:
             v2.Compose: Transform for the dataset.
         """
-        if self.regime == HMDB51DatasetInference.Regime.TRAINING:
+        if self.regime == HMDB51DatasetTemporal.Regime.TRAINING:
             return v2.Compose([
                 v2.RandomResizedCrop(self.crop_size),
                 v2.RandomHorizontalFlip(p=0.5),
@@ -139,7 +138,7 @@ class HMDB51DatasetInference(Dataset):
         Returns:
             int: Number of classes.
         """
-        return len(HMDB51DatasetInference.CLASS_NAMES)
+        return len(HMDB51DatasetTemporal.CLASS_NAMES)
 
 
     def __len__(self) -> int:
@@ -170,11 +169,6 @@ class HMDB51DatasetInference(Dataset):
 
         # Read frames' paths from the video
         frame_paths = sorted(glob(os.path.join(escape(video_path), "*.jpg"))) # get sorted frame paths
-        video_len = len(frame_paths)
-        initial_clip_frame_consumption = self.clip_length * self.temporal_stride - self.temporal_stride
-        frames_left = video_len - initial_clip_frame_consumption
-        max_clips = int(frames_left / self.temporal_stride) + 1
-        # assert self.num_clips <= max_clips
 
         clips = []
         for n in range(self.num_clips):
@@ -183,12 +177,10 @@ class HMDB51DatasetInference(Dataset):
             clip_frames = frame_paths[clip_start:clip_end:self.temporal_stride]
 
             # Read and store each clip
-            clip = torch.zeros((self.clip_length, 3, self.crop_size, self.crop_size), dtype=torch.uint8)
+            clip = torch.zeros((self.clip_length, 3, self.crop_size, self.crop_size), dtype=torch.float32)
             for i, frame_path in enumerate(clip_frames):
                 frame = read_image(frame_path)  # (C, H, W)
-                if self.transform:
-                    frame = self.transform(frame)  # Apply transformation
-                clip[i] = frame
+                clip[i] = self.transform(frame)
 
             clips.append(clip)
 
@@ -218,7 +210,7 @@ class HMDB51DatasetInference(Dataset):
             clips, label, path = sample
 
             # Apply transformations and permute dimensions for each clip
-            transformed_clips = [self.transform(clip).permute(1, 0, 2, 3) for clip in clips]
+            transformed_clips = [clip.permute(1, 0, 2, 3) for clip in clips]
 
             # Store the transformed clips
             batched_clips.append(torch.stack(transformed_clips))

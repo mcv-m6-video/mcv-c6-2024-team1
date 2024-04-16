@@ -10,7 +10,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from datasets.HMDB51Dataset import HMDB51Dataset
-from datasets.HMDB51DatasetInference import HMDB51DatasetInference
+from datasets.HMDB51DatasetSpatial import HMDB51DatasetSpatial
 from models import model_creator
 from train import (create_dataloaders, create_datasets, create_optimizer,
                    evaluate, print_model_summary, train)
@@ -49,13 +49,15 @@ def evaluate_multiview(
         with torch.no_grad():
             outputs = []
             losses = []
+            # clips shape (B, C, 5, T, H, W)
             for i in range(clips.size(1)):  # loop over clips per video
-                curr_clip = clips[:, i]  # clip is now (B, C, T, H, W)
-                curr_outputs = model(curr_clip)
-                curr_loss = loss_fn(curr_outputs, labels) 
-                curr_loss_iter = curr_loss.item()
-                outputs.append(curr_outputs.cpu())
-                losses.append(curr_loss_iter)
+                for j in range(clips.size(2)):  # loop over clips per video
+                    curr_clip = clips[:, i, j]  # clip is now (B, C, T, H, W)
+                    curr_outputs = model(curr_clip)
+                    curr_loss = loss_fn(curr_outputs, labels) 
+                    curr_loss_iter = curr_loss.item()
+                    outputs.append(curr_outputs.cpu())
+                    losses.append(curr_loss_iter)
             
             outputs = np.array(outputs)
             agg_outputs = torch.mean(torch.tensor(outputs, device=device), dim=0)
@@ -80,8 +82,9 @@ def create_datasets_multiview(
         clip_length: int,
         crop_size: int,
         temporal_stride: int,
-        num_clips: int
-) -> Dict[str, HMDB51DatasetInference]:
+        num_clips: int,
+        five_crop_size: int
+) -> Dict[str, HMDB51DatasetSpatial]:
     """
     Creates datasets for training, validation, and testing.
 
@@ -92,30 +95,33 @@ def create_datasets_multiview(
         clip_length (int): Number of frames of the clips.
         crop_size (int): Size of spatial crops (squares).
         temporal_stride (int): Receptive field of the model will be (clip_length * temporal_stride) / FPS.
-
+        num_clips (int): Number of clips for inference.
+        five_crop_size (int): Crop size used in FiveCrop.
     Returns:
-        Dict[str, HMDB51DatasetInference]: A dictionary containing the datasets for training, validation, and testing.
+        Dict[str, HMDB51DatasetSpatial]: A dictionary containing the datasets for training, validation, and testing.
     """
     datasets = {}
-    datasets["validation"] = HMDB51DatasetInference(
+    datasets["validation"] = HMDB51DatasetSpatial(
         frames_dir,
         annotations_dir,
         split,
-        HMDB51DatasetInference.Regime.VALIDATION,
+        HMDB51DatasetSpatial.Regime.VALIDATION,
         clip_length,
         crop_size,
         temporal_stride,
-        num_clips=num_clips
+        num_clips=num_clips,
+        five_crop_size=five_crop_size
     )
-    datasets["testing"] = HMDB51DatasetInference(
+    datasets["testing"] = HMDB51DatasetSpatial(
         frames_dir,
         annotations_dir,
         split,
-        HMDB51DatasetInference.Regime.TESTING,
+        HMDB51DatasetSpatial.Regime.TESTING,
         clip_length,
         crop_size,
         temporal_stride,
-        num_clips=num_clips
+        num_clips=num_clips,
+        five_crop_size=five_crop_size
     )
     return datasets
 
@@ -158,6 +164,8 @@ if __name__ == "__main__":
                         help="Mode for running the script, either train or evaluate")
     parser.add_argument('--num-clips', type=int, default=3,
                         help='Number of clips to divide the video into')
+    parser.add_argument('--five-crop-size', type=int, default=91,
+                        help='Size value used in FiveCrop')
 
     args = parser.parse_args()
 
@@ -219,11 +227,12 @@ if __name__ == "__main__":
     datasets = create_datasets_multiview(
         frames_dir=args.frames_dir,
         annotations_dir=args.annotations_dir,
-        split=HMDB51DatasetInference.Split.TEST_ON_SPLIT_1, # hardcoded
+        split=HMDB51DatasetSpatial.Split.TEST_ON_SPLIT_1, # hardcoded
         clip_length=args.clip_length,
         crop_size=args.crop_size,
         temporal_stride=args.temporal_stride,
-        num_clips=args.num_clips
+        num_clips=args.num_clips,
+        five_crop_size=args.five_crop_size
     )
 
     loaders = create_dataloaders(
