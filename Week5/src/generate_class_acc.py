@@ -2,62 +2,15 @@
 
 import argparse
 
-import torch
 import torch.nn as nn
-from torch.utils.data import DataLoader
-from tqdm import tqdm
 
 from datasets.HMDB51Dataset import HMDB51Dataset
 from models import model_creator
-from train import create_dataloaders, create_datasets
-from utils import statistics
-
-
-def evaluate(
-        model: nn.Module, 
-        valid_loader: DataLoader, 
-        loss_fn: nn.Module,
-        device: str,
-        description: str = ""
-    ) -> None:
-    """
-    Evaluates the given model using the provided data loader and loss function.
-
-    Args:
-        model (nn.Module): The neural network model to be validated.
-        valid_loader (DataLoader): The data loader containing the validation dataset.
-        loss_fn (nn.Module): The loss function used to compute the validation loss (not used for backpropagation)
-        device (str): The device on which the model and data should be processed ('cuda' or 'cpu').
-        description (str, optional): Additional information for tracking epoch description during training. Defaults to "".
-
-    Returns:
-        None
-    """
-    model.eval()
-    pbar = tqdm(valid_loader, desc=description, total=len(valid_loader))
-    loss_valid_mean = statistics.RollingMean(window_size=len(valid_loader))
-    hits = count = 0 # auxiliary variables for computing accuracy
-    for batch in pbar:
-        # Gather batch and move to device
-        clips, labels = batch['clips'].to(device), batch['labels'].to(device)
-        # Forward pass
-        with torch.no_grad():
-            outputs = model(clips)
-            # Compute loss (just for logging, not used for backpropagation)
-            loss = loss_fn(outputs, labels) 
-            # Compute metrics
-            loss_iter = loss.item()
-            hits_iter = torch.eq(outputs.argmax(dim=1), labels).sum().item()
-            hits += hits_iter
-            count += len(labels)
-            # Update progress bar with metrics
-            pbar.set_postfix(
-                loss=loss_iter,
-                loss_mean=loss_valid_mean(loss_iter),
-                acc=(float(hits_iter) / len(labels)),
-                acc_mean=(float(hits) / count)
-            )
-
+from train import (create_dataloaders, create_datasets, create_optimizer,
+                   evaluate, evaluate_per_class_accuracy, print_model_summary,
+                   train)
+from utils.plots import Plots
+from utils.statistics import evaluate_per_class_accuracy
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Train a video classification model on HMDB51 dataset.')
@@ -69,22 +22,28 @@ if __name__ == "__main__":
                         help='Number of frames of the clips')
     parser.add_argument('--crop-size', type=int, default=182,
                         help='Size of spatial crops (squares)')
-    parser.add_argument('--temporal-stride', type=int, default=6,
+    parser.add_argument('--temporal-stride', type=int, default=12,
                         help='Receptive field of the model will be (clip_length * temporal_stride) / FPS')
     parser.add_argument('--model-name', type=str, default='x3d_xs',
                         help='Model name as defined in models/model_creator.py')
     parser.add_argument('--load-pretrain', action='store_true', default=False,
                     help='Load pretrained weights for the model (if available)')
+    parser.add_argument('--optimizer-name', type=str, default="adam",
+                        help='Optimizer name (supported: "adam" and "sgd" for now)')
+    parser.add_argument('--lr', type=float, default=1e-4,
+                        help='Learning rate')
+    parser.add_argument('--epochs', type=int, default=50,
+                        help='Number of epochs')
     parser.add_argument('--batch-size', type=int, default=16,
                         help='Batch size for the training data loader')
     parser.add_argument('--batch-size-eval', type=int, default=16,
                         help='Batch size for the evaluation data loader')
+    parser.add_argument('--validate-every', type=int, default=5,
+                        help='Number of epochs after which to validate the model')
     parser.add_argument('--num-workers', type=int, default=2,
                         help='Number of worker processes for data loading')
     parser.add_argument('--device', type=str, default='cuda',
                         help='Device to use for training (cuda or cpu)')
-    parser.add_argument('--model-path', type=str, default="./weights/weights_multiview_inference.pth",
-                        help="Path from where to load the model or save (if training)")
 
     args = parser.parse_args()
 
@@ -106,18 +65,34 @@ if __name__ == "__main__":
         num_workers=args.num_workers
     )
 
-    model = model_creator.load_model(
-        args.model_name, 
-        args.load_pretrain, 
-        datasets["training"].get_num_classes(),
-        load_path=args.model_path
-    )
-    
-    model = model.to(args.device)
+    # Init model, optimizer, and loss function
+    model = model_creator.create(args.model_name, args.load_pretrain, datasets["training"].get_num_classes())
+    optimizer = create_optimizer(args.optimizer_name, model.parameters(), lr=args.lr)
     loss_fn = nn.CrossEntropyLoss()
+
+    print_model_summary(model, args.clip_length, args.crop_size)
+
+    model = model.to(args.device)
+
+    for epoch in range(args.epochs):
+        # Validation
+        if epoch % args.validate_every == 0:
+            description = f"Validation [Epoch: {epoch+1}/{args.epochs}]"
+            evaluate(model, loaders['validation'], loss_fn, args.device, description=description)
+        # Training
+        description = f"Training [Epoch: {epoch+1}/{args.epochs}]"
+        train(model, loaders['training'], optimizer, loss_fn, args.device, description=description)
 
     # Testing
     evaluate(model, loaders['validation'], loss_fn, args.device, description=f"Validation [Final]")
     evaluate(model, loaders['testing'], loss_fn, args.device, description=f"Testing")
+    
+    # Compute per-class accuracy
+    per_class_accuracy = evaluate_per_class_accuracy(model, loaders['validation'], args.device)
 
+    # Print per-class accuracy
+    # print("Per-Class Accuracy:")
+    # for i, accuracy in enumerate(per_class_accuracy):
+    #     print(f"Class {CLASS_NAMES[i]}: {accuracy:.4f}")
+    Plots.generate_per_class_accuracy_plot(per_class_accuracy, "first_model_plots")
     exit()

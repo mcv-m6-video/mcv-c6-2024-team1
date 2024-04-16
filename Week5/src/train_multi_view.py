@@ -1,18 +1,18 @@
 """ Main script for training a video classification model on HMDB51 dataset. """
 
 import argparse
-import torch
-import torch.nn as nn
-from tqdm import tqdm
+import random
 from typing import Dict, Iterator
 
+import torch
+import torch.nn as nn
 from torch.utils.data import DataLoader
+from tqdm import tqdm
 
 from datasets.HMDB51Dataset_mv import HMDB51Dataset_mv
 from models import model_creator
-from utils import model_analysis
-from utils import statistics
-import random
+from utils import model_analysis, statistics
+
 
 class EarlyStopping:
     def __init__(self, patience=50, min_delta=0):

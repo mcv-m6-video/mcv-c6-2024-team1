@@ -1,17 +1,16 @@
 """ Main script for training a video classification model on HMDB51 dataset. """
 
 import argparse
-import torch
-import torch.nn as nn
-from tqdm import tqdm
 from typing import Dict, Iterator
 
+import torch
+import torch.nn as nn
 from torch.utils.data import DataLoader
+from tqdm import tqdm
 
 from datasets.HMDB51Dataset import HMDB51Dataset
 from models import model_creator
-from utils import model_analysis
-from utils import statistics
+from utils import model_analysis, statistics
 
 
 def train(

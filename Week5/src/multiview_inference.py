@@ -1,20 +1,21 @@
 """ Main script for training a video classification model on HMDB51 dataset. """
 
 import argparse
-import torch
-import torch.nn as nn
-import numpy as np
-from tqdm import tqdm
 from typing import Dict
 
+import numpy as np
+import torch
+import torch.nn as nn
 from torch.utils.data import DataLoader
+from tqdm import tqdm
 
-from utils.early_stopping import EarlyStopping
 from datasets.HMDB51Dataset import HMDB51Dataset
 from datasets.HMDB51DatasetInference import HMDB51DatasetInference
-from train import create_datasets, create_optimizer, create_dataloaders, train, evaluate, print_model_summary
 from models import model_creator
+from train import (create_dataloaders, create_datasets, create_optimizer,
+                   evaluate, print_model_summary, train)
 from utils import statistics
+from utils.early_stopping import EarlyStopping
 
 
 def evaluate_multiview(
