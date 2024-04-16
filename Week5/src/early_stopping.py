@@ -260,7 +260,7 @@ if __name__ == "__main__":
                         help='Optimizer name (supported: "adam" and "sgd" for now)')
     parser.add_argument('--lr', type=float, default=1e-4,
                         help='Learning rate')
-    parser.add_argument('--epochs', type=int, default=50,
+    parser.add_argument('--epochs', type=int, default=4,
                         help='Number of epochs')
     parser.add_argument('--batch-size', type=int, default=16,
                         help='Batch size for the training data loader')
