@@ -1,0 +1,84 @@
+wandb_version: 1
+
+frames_dir:
+  desc: null
+  value: ./frames
+annotations_dir:
+  desc: null
+  value: data/hmdb51/testTrainMulti_601030_splits
+clip_length:
+  desc: null
+  value: 4
+crop_size:
+  desc: null
+  value: 182
+temporal_stride:
+  desc: null
+  value: 12
+model_name:
+  desc: null
+  value: x3d_xs
+load_pretrain:
+  desc: null
+  value: false
+optimizer_name:
+  desc: null
+  value: adam
+lr:
+  desc: null
+  value: 0.0001
+epochs:
+  desc: null
+  value: 50
+batch_size:
+  desc: null
+  value: 16
+batch_size_eval:
+  desc: null
+  value: 16
+validate_every:
+  desc: null
+  value: 1
+num_workers:
+  desc: null
+  value: 2
+device:
+  desc: null
+  value: cuda
+_wandb:
+  desc: null
+  value:
+    python_version: 3.9.18
+    cli_version: 0.16.3
+    framework: huggingface
+    huggingface_version: 4.39.3
+    is_jupyter_run: false
+    is_kaggle_kernel: false
+    start_time: 1713263691.682587
+    t:
+      1:
+      - 1
+      - 11
+      - 41
+      - 49
+      - 51
+      - 55
+      2:
+      - 1
+      - 11
+      - 29
+      - 41
+      - 49
+      - 51
+      - 55
+      3:
+      - 1
+      - 2
+      - 16
+      - 23
+      4: 3.9.18
+      5: 0.16.3
+      6: 4.39.3
+      8:
+      - 5
+      13: linux-x86_64

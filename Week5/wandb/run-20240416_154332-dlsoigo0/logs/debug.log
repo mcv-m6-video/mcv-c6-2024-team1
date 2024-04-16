@@ -1,0 +1,29 @@
+2024-04-16 15:43:32,672 INFO    MainThread:1654428 [wandb_setup.py:_flush():76] Current SDK version is 0.16.3
+2024-04-16 15:43:32,672 INFO    MainThread:1654428 [wandb_setup.py:_flush():76] Configure stats pid to 1654428
+2024-04-16 15:43:32,672 INFO    MainThread:1654428 [wandb_setup.py:_flush():76] Loading settings from /ghome/group01/.config/wandb/settings
+2024-04-16 15:43:32,672 INFO    MainThread:1654428 [wandb_setup.py:_flush():76] Loading settings from /export/home/group01/mcv-c6-2024-team1/Week5/wandb/settings
+2024-04-16 15:43:32,672 INFO    MainThread:1654428 [wandb_setup.py:_flush():76] Loading settings from environment variables: {}
+2024-04-16 15:43:32,672 INFO    MainThread:1654428 [wandb_setup.py:_flush():76] Applying setup settings: {'_disable_service': False}
+2024-04-16 15:43:32,672 INFO    MainThread:1654428 [wandb_setup.py:_flush():76] Inferring run settings from compute environment: {'program_relpath': 'Week5/src/early_stopping.py', 'program_abspath': '/export/home/group01/mcv-c6-2024-team1/Week5/src/early_stopping.py', 'program': '/export/home/group01/mcv-c6-2024-team1/Week5/src/early_stopping.py'}
+2024-04-16 15:43:32,672 INFO    MainThread:1654428 [wandb_init.py:_log_setup():526] Logging user logs to /export/home/group01/mcv-c6-2024-team1/Week5/wandb/run-20240416_154332-dlsoigo0/logs/debug.log
+2024-04-16 15:43:32,672 INFO    MainThread:1654428 [wandb_init.py:_log_setup():527] Logging internal logs to /export/home/group01/mcv-c6-2024-team1/Week5/wandb/run-20240416_154332-dlsoigo0/logs/debug-internal.log
+2024-04-16 15:43:32,672 INFO    MainThread:1654428 [wandb_init.py:init():566] calling init triggers
+2024-04-16 15:43:32,672 INFO    MainThread:1654428 [wandb_init.py:init():573] wandb.init called with sweep_config: {}
+config: {'frames_dir': './frames', 'annotations_dir': 'data/hmdb51/testTrainMulti_601030_splits', 'clip_length': 4, 'crop_size': 182, 'temporal_stride': 12, 'model_name': 'x3d_xs_frozen', 'load_pretrain': False, 'optimizer_name': 'adam', 'lr': 0.0001, 'epochs': 1, 'batch_size': 16, 'batch_size_eval': 16, 'validate_every': 2, 'num_workers': 2, 'device': 'cuda'}
+2024-04-16 15:43:32,672 INFO    MainThread:1654428 [wandb_init.py:init():616] starting backend
+2024-04-16 15:43:32,672 INFO    MainThread:1654428 [wandb_init.py:init():620] setting up manager
+2024-04-16 15:43:32,674 INFO    MainThread:1654428 [backend.py:_multiprocessing_setup():105] multiprocessing start_methods=fork,spawn,forkserver, using: spawn
+2024-04-16 15:43:32,676 INFO    MainThread:1654428 [wandb_init.py:init():628] backend started and connected
+2024-04-16 15:43:32,680 INFO    MainThread:1654428 [wandb_init.py:init():720] updated telemetry
+2024-04-16 15:43:32,710 INFO    MainThread:1654428 [wandb_init.py:init():753] communicating run to backend with 90.0 second timeout
+2024-04-16 15:43:33,184 INFO    MainThread:1654428 [wandb_run.py:_on_init():2262] communicating current version
+2024-04-16 15:43:33,297 INFO    MainThread:1654428 [wandb_run.py:_on_init():2271] got version response upgrade_message: "wandb version 0.16.6 is available!  To upgrade, please run:\n $ pip install wandb --upgrade"
+
+2024-04-16 15:43:33,298 INFO    MainThread:1654428 [wandb_init.py:init():804] starting run threads in backend
+2024-04-16 15:43:38,016 INFO    MainThread:1654428 [wandb_run.py:_console_start():2241] atexit reg
+2024-04-16 15:43:38,016 INFO    MainThread:1654428 [wandb_run.py:_redirect():2096] redirect: wrap_raw
+2024-04-16 15:43:38,016 INFO    MainThread:1654428 [wandb_run.py:_redirect():2161] Wrapping output streams.
+2024-04-16 15:43:38,016 INFO    MainThread:1654428 [wandb_run.py:_redirect():2186] Redirects installed.
+2024-04-16 15:43:38,017 INFO    MainThread:1654428 [wandb_init.py:init():847] run started, returning control to user process
+2024-04-16 15:43:39,158 INFO    MainThread:1654428 [wandb_watch.py:watch():51] Watching
+2024-04-16 15:43:46,624 WARNING MsgRouterThr:1654428 [router.py:message_loop():77] message_loop has been closed

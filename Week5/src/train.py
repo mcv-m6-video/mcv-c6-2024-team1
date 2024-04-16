@@ -20,7 +20,8 @@ def train(
         optimizer: torch.optim.Optimizer, 
         loss_fn: nn.Module,
         device: str,
-        description: str = ""
+        description: str = "",
+        save_path: str = None
     ) -> None:
     """
     Trains the given model using the provided data loader, optimizer, and loss function.
@@ -62,6 +63,9 @@ def train(
             acc=(float(hits_iter) / len(labels)),
             acc_mean=(float(hits) / count)
         )
+        
+    if save_path:
+        torch.save(model.state_dict(), save_path)
 
 
 def evaluate(

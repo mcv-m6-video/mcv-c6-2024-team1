@@ -1,0 +1,641 @@
+Using cache found in /ghome/group01/.cache/torch/hub/facebookresearch_pytorchvideo_main
+Unsupported operator aten::add_ encountered 83 time(s)
+Unsupported operator aten::mean encountered 15 time(s)
+Unsupported operator aten::sigmoid encountered 15 time(s)
+Unsupported operator aten::mul encountered 15 time(s)
+Unsupported operator prim::PythonOp.SwishFunction encountered 26 time(s)
+Unsupported operator aten::add encountered 26 time(s)
+Unsupported operator aten::avg_pool3d encountered 1 time(s)
+Unsupported operator aten::adaptive_avg_pool3d encountered 1 time(s)
+Validation [Epoch: 1/50]:   0%|          | 0/30 [00:00<?, ?it/s]
+Sequential(
+  (0): Net(
+    (blocks): ModuleList(
+      (0): ResNetBasicStem(
+        (conv): Conv2plus1d(
+          (conv_t): Conv3d(3, 24, kernel_size=(1, 3, 3), stride=(1, 2, 2), padding=(0, 1, 1), bias=False)
+          (conv_xy): Conv3d(24, 24, kernel_size=(5, 1, 1), stride=(1, 1, 1), padding=(2, 0, 0), groups=24, bias=False)
+        )
+        (norm): BatchNorm3d(24, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (activation): ReLU()
+      )
+      (1): ResStage(
+        (res_blocks): ModuleList(
+          (0): ResBlock(
+            (branch1_conv): Conv3d(24, 24, kernel_size=(1, 1, 1), stride=(1, 2, 2), bias=False)
+            (branch2): BottleneckBlock(
+              (conv_a): Conv3d(24, 54, kernel_size=(1, 1, 1), stride=(1, 1, 1), bias=False)
+              (norm_a): BatchNorm3d(54, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+              (act_a): ReLU()
+              (conv_b): Conv3d(54, 54, kernel_size=(3, 3, 3), stride=(1, 2, 2), padding=(1, 1, 1), groups=54, bias=False)
+              (norm_b): Sequential(
+                (0): BatchNorm3d(54, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+                (1): SqueezeExcitation(
+                  (block): Sequential(
+                    (0): Conv3d(54, 8, kernel_size=(1, 1, 1), stride=(1, 1, 1))
+                    (1): ReLU()
+                    (2): Conv3d(8, 54, kernel_size=(1, 1, 1), stride=(1, 1, 1))
+                    (3): Sigmoid()
+                  )
+                )
+              )
+              (act_b): Swish()
+              (conv_c): Conv3d(54, 24, kernel_size=(1, 1, 1), stride=(1, 1, 1), bias=False)
+              (norm_c): BatchNorm3d(24, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            )
+            (activation): ReLU()
+          )
+          (1): ResBlock(
+            (branch2): BottleneckBlock(
+              (conv_a): Conv3d(24, 54, kernel_size=(1, 1, 1), stride=(1, 1, 1), bias=False)
+              (norm_a): BatchNorm3d(54, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+              (act_a): ReLU()
+              (conv_b): Conv3d(54, 54, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), groups=54, bias=False)
+              (norm_b): Sequential(
+                (0): BatchNorm3d(54, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+                (1): Identity()
+              )
+              (act_b): Swish()
+              (conv_c): Conv3d(54, 24, kernel_size=(1, 1, 1), stride=(1, 1, 1), bias=False)
+              (norm_c): BatchNorm3d(24, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            )
+            (activation): ReLU()
+          )
+          (2): ResBlock(
+            (branch2): BottleneckBlock(
+              (conv_a): Conv3d(24, 54, kernel_size=(1, 1, 1), stride=(1, 1, 1), bias=False)
+              (norm_a): BatchNorm3d(54, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+              (act_a): ReLU()
+              (conv_b): Conv3d(54, 54, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), groups=54, bias=False)
+              (norm_b): Sequential(
+                (0): BatchNorm3d(54, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+                (1): SqueezeExcitation(
+                  (block): Sequential(
+                    (0): Conv3d(54, 8, kernel_size=(1, 1, 1), stride=(1, 1, 1))
+                    (1): ReLU()
+                    (2): Conv3d(8, 54, kernel_size=(1, 1, 1), stride=(1, 1, 1))
+                    (3): Sigmoid()
+                  )
+                )
+              )
+              (act_b): Swish()
+              (conv_c): Conv3d(54, 24, kernel_size=(1, 1, 1), stride=(1, 1, 1), bias=False)
+              (norm_c): BatchNorm3d(24, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            )
+            (activation): ReLU()
+          )
+        )
+      )
+      (2): ResStage(
+        (res_blocks): ModuleList(
+          (0): ResBlock(
+            (branch1_conv): Conv3d(24, 48, kernel_size=(1, 1, 1), stride=(1, 2, 2), bias=False)
+            (branch1_norm): BatchNorm3d(48, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (branch2): BottleneckBlock(
+              (conv_a): Conv3d(24, 108, kernel_size=(1, 1, 1), stride=(1, 1, 1), bias=False)
+              (norm_a): BatchNorm3d(108, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+              (act_a): ReLU()
+              (conv_b): Conv3d(108, 108, kernel_size=(3, 3, 3), stride=(1, 2, 2), padding=(1, 1, 1), groups=108, bias=False)
+              (norm_b): Sequential(
+                (0): BatchNorm3d(108, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+                (1): SqueezeExcitation(
+                  (block): Sequential(
+                    (0): Conv3d(108, 8, kernel_size=(1, 1, 1), stride=(1, 1, 1))
+                    (1): ReLU()
+                    (2): Conv3d(8, 108, kernel_size=(1, 1, 1), stride=(1, 1, 1))
+                    (3): Sigmoid()
+                  )
+                )
+              )
+              (act_b): Swish()
+              (conv_c): Conv3d(108, 48, kernel_size=(1, 1, 1), stride=(1, 1, 1), bias=False)
+              (norm_c): BatchNorm3d(48, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            )
+            (activation): ReLU()
+          )
+          (1): ResBlock(
+            (branch2): BottleneckBlock(
+              (conv_a): Conv3d(48, 108, kernel_size=(1, 1, 1), stride=(1, 1, 1), bias=False)
+              (norm_a): BatchNorm3d(108, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+              (act_a): ReLU()
+              (conv_b): Conv3d(108, 108, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), groups=108, bias=False)
+              (norm_b): Sequential(
+                (0): BatchNorm3d(108, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+                (1): Identity()
+              )
+              (act_b): Swish()
+              (conv_c): Conv3d(108, 48, kernel_size=(1, 1, 1), stride=(1, 1, 1), bias=False)
+              (norm_c): BatchNorm3d(48, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            )
+            (activation): ReLU()
+          )
+          (2): ResBlock(
+            (branch2): BottleneckBlock(
+              (conv_a): Conv3d(48, 108, kernel_size=(1, 1, 1), stride=(1, 1, 1), bias=False)
+              (norm_a): BatchNorm3d(108, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+              (act_a): ReLU()
+              (conv_b): Conv3d(108, 108, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), groups=108, bias=False)
+              (norm_b): Sequential(
+                (0): BatchNorm3d(108, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+                (1): SqueezeExcitation(
+                  (block): Sequential(
+                    (0): Conv3d(108, 8, kernel_size=(1, 1, 1), stride=(1, 1, 1))
+                    (1): ReLU()
+                    (2): Conv3d(8, 108, kernel_size=(1, 1, 1), stride=(1, 1, 1))
+                    (3): Sigmoid()
+                  )
+                )
+              )
+              (act_b): Swish()
+              (conv_c): Conv3d(108, 48, kernel_size=(1, 1, 1), stride=(1, 1, 1), bias=False)
+              (norm_c): BatchNorm3d(48, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            )
+            (activation): ReLU()
+          )
+          (3): ResBlock(
+            (branch2): BottleneckBlock(
+              (conv_a): Conv3d(48, 108, kernel_size=(1, 1, 1), stride=(1, 1, 1), bias=False)
+              (norm_a): BatchNorm3d(108, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+              (act_a): ReLU()
+              (conv_b): Conv3d(108, 108, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), groups=108, bias=False)
+              (norm_b): Sequential(
+                (0): BatchNorm3d(108, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+                (1): Identity()
+              )
+              (act_b): Swish()
+              (conv_c): Conv3d(108, 48, kernel_size=(1, 1, 1), stride=(1, 1, 1), bias=False)
+              (norm_c): BatchNorm3d(48, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            )
+            (activation): ReLU()
+          )
+          (4): ResBlock(
+            (branch2): BottleneckBlock(
+              (conv_a): Conv3d(48, 108, kernel_size=(1, 1, 1), stride=(1, 1, 1), bias=False)
+              (norm_a): BatchNorm3d(108, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+              (act_a): ReLU()
+              (conv_b): Conv3d(108, 108, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), groups=108, bias=False)
+              (norm_b): Sequential(
+                (0): BatchNorm3d(108, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+                (1): SqueezeExcitation(
+                  (block): Sequential(
+                    (0): Conv3d(108, 8, kernel_size=(1, 1, 1), stride=(1, 1, 1))
+                    (1): ReLU()
+                    (2): Conv3d(8, 108, kernel_size=(1, 1, 1), stride=(1, 1, 1))
+                    (3): Sigmoid()
+                  )
+                )
+              )
+              (act_b): Swish()
+              (conv_c): Conv3d(108, 48, kernel_size=(1, 1, 1), stride=(1, 1, 1), bias=False)
+              (norm_c): BatchNorm3d(48, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            )
+            (activation): ReLU()
+          )
+        )
+      )
+      (3): ResStage(
+        (res_blocks): ModuleList(
+          (0): ResBlock(
+            (branch1_conv): Conv3d(48, 96, kernel_size=(1, 1, 1), stride=(1, 2, 2), bias=False)
+            (branch1_norm): BatchNorm3d(96, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (branch2): BottleneckBlock(
+              (conv_a): Conv3d(48, 216, kernel_size=(1, 1, 1), stride=(1, 1, 1), bias=False)
+              (norm_a): BatchNorm3d(216, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+              (act_a): ReLU()
+              (conv_b): Conv3d(216, 216, kernel_size=(3, 3, 3), stride=(1, 2, 2), padding=(1, 1, 1), groups=216, bias=False)
+              (norm_b): Sequential(
+                (0): BatchNorm3d(216, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+                (1): SqueezeExcitation(
+                  (block): Sequential(
+                    (0): Conv3d(216, 16, kernel_size=(1, 1, 1), stride=(1, 1, 1))
+                    (1): ReLU()
+                    (2): Conv3d(16, 216, kernel_size=(1, 1, 1), stride=(1, 1, 1))
+                    (3): Sigmoid()
+                  )
+                )
+              )
+              (act_b): Swish()
+              (conv_c): Conv3d(216, 96, kernel_size=(1, 1, 1), stride=(1, 1, 1), bias=False)
+              (norm_c): BatchNorm3d(96, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            )
+            (activation): ReLU()
+          )
+          (1): ResBlock(
+            (branch2): BottleneckBlock(
+              (conv_a): Conv3d(96, 216, kernel_size=(1, 1, 1), stride=(1, 1, 1), bias=False)
+              (norm_a): BatchNorm3d(216, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+              (act_a): ReLU()
+              (conv_b): Conv3d(216, 216, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), groups=216, bias=False)
+              (norm_b): Sequential(
+                (0): BatchNorm3d(216, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+                (1): Identity()
+              )
+              (act_b): Swish()
+              (conv_c): Conv3d(216, 96, kernel_size=(1, 1, 1), stride=(1, 1, 1), bias=False)
+              (norm_c): BatchNorm3d(96, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            )
+            (activation): ReLU()
+          )
+          (2): ResBlock(
+            (branch2): BottleneckBlock(
+              (conv_a): Conv3d(96, 216, kernel_size=(1, 1, 1), stride=(1, 1, 1), bias=False)
+              (norm_a): BatchNorm3d(216, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+              (act_a): ReLU()
+              (conv_b): Conv3d(216, 216, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), groups=216, bias=False)
+              (norm_b): Sequential(
+                (0): BatchNorm3d(216, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+                (1): SqueezeExcitation(
+                  (block): Sequential(
+                    (0): Conv3d(216, 16, kernel_size=(1, 1, 1), stride=(1, 1, 1))
+                    (1): ReLU()
+                    (2): Conv3d(16, 216, kernel_size=(1, 1, 1), stride=(1, 1, 1))
+                    (3): Sigmoid()
+                  )
+                )
+              )
+              (act_b): Swish()
+              (conv_c): Conv3d(216, 96, kernel_size=(1, 1, 1), stride=(1, 1, 1), bias=False)
+              (norm_c): BatchNorm3d(96, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            )
+            (activation): ReLU()
+          )
+          (3): ResBlock(
+            (branch2): BottleneckBlock(
+              (conv_a): Conv3d(96, 216, kernel_size=(1, 1, 1), stride=(1, 1, 1), bias=False)
+              (norm_a): BatchNorm3d(216, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+              (act_a): ReLU()
+              (conv_b): Conv3d(216, 216, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), groups=216, bias=False)
+              (norm_b): Sequential(
+                (0): BatchNorm3d(216, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+                (1): Identity()
+              )
+              (act_b): Swish()
+              (conv_c): Conv3d(216, 96, kernel_size=(1, 1, 1), stride=(1, 1, 1), bias=False)
+              (norm_c): BatchNorm3d(96, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            )
+            (activation): ReLU()
+          )
+          (4): ResBlock(
+            (branch2): BottleneckBlock(
+              (conv_a): Conv3d(96, 216, kernel_size=(1, 1, 1), stride=(1, 1, 1), bias=False)
+              (norm_a): BatchNorm3d(216, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+              (act_a): ReLU()
+              (conv_b): Conv3d(216, 216, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), groups=216, bias=False)
+              (norm_b): Sequential(
+                (0): BatchNorm3d(216, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+                (1): SqueezeExcitation(
+                  (block): Sequential(
+                    (0): Conv3d(216, 16, kernel_size=(1, 1, 1), stride=(1, 1, 1))
+                    (1): ReLU()
+                    (2): Conv3d(16, 216, kernel_size=(1, 1, 1), stride=(1, 1, 1))
+                    (3): Sigmoid()
+                  )
+                )
+              )
+              (act_b): Swish()
+              (conv_c): Conv3d(216, 96, kernel_size=(1, 1, 1), stride=(1, 1, 1), bias=False)
+              (norm_c): BatchNorm3d(96, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            )
+            (activation): ReLU()
+          )
+          (5): ResBlock(
+            (branch2): BottleneckBlock(
+              (conv_a): Conv3d(96, 216, kernel_size=(1, 1, 1), stride=(1, 1, 1), bias=False)
+              (norm_a): BatchNorm3d(216, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+              (act_a): ReLU()
+              (conv_b): Conv3d(216, 216, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), groups=216, bias=False)
+              (norm_b): Sequential(
+                (0): BatchNorm3d(216, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+                (1): Identity()
+              )
+              (act_b): Swish()
+              (conv_c): Conv3d(216, 96, kernel_size=(1, 1, 1), stride=(1, 1, 1), bias=False)
+              (norm_c): BatchNorm3d(96, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            )
+            (activation): ReLU()
+          )
+          (6): ResBlock(
+            (branch2): BottleneckBlock(
+              (conv_a): Conv3d(96, 216, kernel_size=(1, 1, 1), stride=(1, 1, 1), bias=False)
+              (norm_a): BatchNorm3d(216, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+              (act_a): ReLU()
+              (conv_b): Conv3d(216, 216, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), groups=216, bias=False)
+              (norm_b): Sequential(
+                (0): BatchNorm3d(216, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+                (1): SqueezeExcitation(
+                  (block): Sequential(
+                    (0): Conv3d(216, 16, kernel_size=(1, 1, 1), stride=(1, 1, 1))
+                    (1): ReLU()
+                    (2): Conv3d(16, 216, kernel_size=(1, 1, 1), stride=(1, 1, 1))
+                    (3): Sigmoid()
+                  )
+                )
+              )
+              (act_b): Swish()
+              (conv_c): Conv3d(216, 96, kernel_size=(1, 1, 1), stride=(1, 1, 1), bias=False)
+              (norm_c): BatchNorm3d(96, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            )
+            (activation): ReLU()
+          )
+          (7): ResBlock(
+            (branch2): BottleneckBlock(
+              (conv_a): Conv3d(96, 216, kernel_size=(1, 1, 1), stride=(1, 1, 1), bias=False)
+              (norm_a): BatchNorm3d(216, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+              (act_a): ReLU()
+              (conv_b): Conv3d(216, 216, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), groups=216, bias=False)
+              (norm_b): Sequential(
+                (0): BatchNorm3d(216, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+                (1): Identity()
+              )
+              (act_b): Swish()
+              (conv_c): Conv3d(216, 96, kernel_size=(1, 1, 1), stride=(1, 1, 1), bias=False)
+              (norm_c): BatchNorm3d(96, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            )
+            (activation): ReLU()
+          )
+          (8): ResBlock(
+            (branch2): BottleneckBlock(
+              (conv_a): Conv3d(96, 216, kernel_size=(1, 1, 1), stride=(1, 1, 1), bias=False)
+              (norm_a): BatchNorm3d(216, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+              (act_a): ReLU()
+              (conv_b): Conv3d(216, 216, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), groups=216, bias=False)
+              (norm_b): Sequential(
+                (0): BatchNorm3d(216, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+                (1): SqueezeExcitation(
+                  (block): Sequential(
+                    (0): Conv3d(216, 16, kernel_size=(1, 1, 1), stride=(1, 1, 1))
+                    (1): ReLU()
+                    (2): Conv3d(16, 216, kernel_size=(1, 1, 1), stride=(1, 1, 1))
+                    (3): Sigmoid()
+                  )
+                )
+              )
+              (act_b): Swish()
+              (conv_c): Conv3d(216, 96, kernel_size=(1, 1, 1), stride=(1, 1, 1), bias=False)
+              (norm_c): BatchNorm3d(96, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            )
+            (activation): ReLU()
+          )
+          (9): ResBlock(
+            (branch2): BottleneckBlock(
+              (conv_a): Conv3d(96, 216, kernel_size=(1, 1, 1), stride=(1, 1, 1), bias=False)
+              (norm_a): BatchNorm3d(216, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+              (act_a): ReLU()
+              (conv_b): Conv3d(216, 216, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), groups=216, bias=False)
+              (norm_b): Sequential(
+                (0): BatchNorm3d(216, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+                (1): Identity()
+              )
+              (act_b): Swish()
+              (conv_c): Conv3d(216, 96, kernel_size=(1, 1, 1), stride=(1, 1, 1), bias=False)
+              (norm_c): BatchNorm3d(96, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            )
+            (activation): ReLU()
+          )
+          (10): ResBlock(
+            (branch2): BottleneckBlock(
+              (conv_a): Conv3d(96, 216, kernel_size=(1, 1, 1), stride=(1, 1, 1), bias=False)
+              (norm_a): BatchNorm3d(216, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+              (act_a): ReLU()
+              (conv_b): Conv3d(216, 216, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), groups=216, bias=False)
+              (norm_b): Sequential(
+                (0): BatchNorm3d(216, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+                (1): SqueezeExcitation(
+                  (block): Sequential(
+                    (0): Conv3d(216, 16, kernel_size=(1, 1, 1), stride=(1, 1, 1))
+                    (1): ReLU()
+                    (2): Conv3d(16, 216, kernel_size=(1, 1, 1), stride=(1, 1, 1))
+                    (3): Sigmoid()
+                  )
+                )
+              )
+              (act_b): Swish()
+              (conv_c): Conv3d(216, 96, kernel_size=(1, 1, 1), stride=(1, 1, 1), bias=False)
+              (norm_c): BatchNorm3d(96, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            )
+            (activation): ReLU()
+          )
+        )
+      )
+      (4): ResStage(
+        (res_blocks): ModuleList(
+          (0): ResBlock(
+            (branch1_conv): Conv3d(96, 192, kernel_size=(1, 1, 1), stride=(1, 2, 2), bias=False)
+            (branch1_norm): BatchNorm3d(192, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            (branch2): BottleneckBlock(
+              (conv_a): Conv3d(96, 432, kernel_size=(1, 1, 1), stride=(1, 1, 1), bias=False)
+              (norm_a): BatchNorm3d(432, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+              (act_a): ReLU()
+              (conv_b): Conv3d(432, 432, kernel_size=(3, 3, 3), stride=(1, 2, 2), padding=(1, 1, 1), groups=432, bias=False)
+              (norm_b): Sequential(
+                (0): BatchNorm3d(432, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+                (1): SqueezeExcitation(
+                  (block): Sequential(
+                    (0): Conv3d(432, 32, kernel_size=(1, 1, 1), stride=(1, 1, 1))
+                    (1): ReLU()
+                    (2): Conv3d(32, 432, kernel_size=(1, 1, 1), stride=(1, 1, 1))
+                    (3): Sigmoid()
+                  )
+                )
+              )
+              (act_b): Swish()
+              (conv_c): Conv3d(432, 192, kernel_size=(1, 1, 1), stride=(1, 1, 1), bias=False)
+              (norm_c): BatchNorm3d(192, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            )
+            (activation): ReLU()
+          )
+          (1): ResBlock(
+            (branch2): BottleneckBlock(
+              (conv_a): Conv3d(192, 432, kernel_size=(1, 1, 1), stride=(1, 1, 1), bias=False)
+              (norm_a): BatchNorm3d(432, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+              (act_a): ReLU()
+              (conv_b): Conv3d(432, 432, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), groups=432, bias=False)
+              (norm_b): Sequential(
+                (0): BatchNorm3d(432, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+                (1): Identity()
+              )
+              (act_b): Swish()
+              (conv_c): Conv3d(432, 192, kernel_size=(1, 1, 1), stride=(1, 1, 1), bias=False)
+              (norm_c): BatchNorm3d(192, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            )
+            (activation): ReLU()
+          )
+          (2): ResBlock(
+            (branch2): BottleneckBlock(
+              (conv_a): Conv3d(192, 432, kernel_size=(1, 1, 1), stride=(1, 1, 1), bias=False)
+              (norm_a): BatchNorm3d(432, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+              (act_a): ReLU()
+              (conv_b): Conv3d(432, 432, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), groups=432, bias=False)
+              (norm_b): Sequential(
+                (0): BatchNorm3d(432, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+                (1): SqueezeExcitation(
+                  (block): Sequential(
+                    (0): Conv3d(432, 32, kernel_size=(1, 1, 1), stride=(1, 1, 1))
+                    (1): ReLU()
+                    (2): Conv3d(32, 432, kernel_size=(1, 1, 1), stride=(1, 1, 1))
+                    (3): Sigmoid()
+                  )
+                )
+              )
+              (act_b): Swish()
+              (conv_c): Conv3d(432, 192, kernel_size=(1, 1, 1), stride=(1, 1, 1), bias=False)
+              (norm_c): BatchNorm3d(192, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            )
+            (activation): ReLU()
+          )
+          (3): ResBlock(
+            (branch2): BottleneckBlock(
+              (conv_a): Conv3d(192, 432, kernel_size=(1, 1, 1), stride=(1, 1, 1), bias=False)
+              (norm_a): BatchNorm3d(432, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+              (act_a): ReLU()
+              (conv_b): Conv3d(432, 432, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), groups=432, bias=False)
+              (norm_b): Sequential(
+                (0): BatchNorm3d(432, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+                (1): Identity()
+              )
+              (act_b): Swish()
+              (conv_c): Conv3d(432, 192, kernel_size=(1, 1, 1), stride=(1, 1, 1), bias=False)
+              (norm_c): BatchNorm3d(192, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            )
+            (activation): ReLU()
+          )
+          (4): ResBlock(
+            (branch2): BottleneckBlock(
+              (conv_a): Conv3d(192, 432, kernel_size=(1, 1, 1), stride=(1, 1, 1), bias=False)
+              (norm_a): BatchNorm3d(432, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+              (act_a): ReLU()
+              (conv_b): Conv3d(432, 432, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), groups=432, bias=False)
+              (norm_b): Sequential(
+                (0): BatchNorm3d(432, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+                (1): SqueezeExcitation(
+                  (block): Sequential(
+                    (0): Conv3d(432, 32, kernel_size=(1, 1, 1), stride=(1, 1, 1))
+                    (1): ReLU()
+                    (2): Conv3d(32, 432, kernel_size=(1, 1, 1), stride=(1, 1, 1))
+                    (3): Sigmoid()
+                  )
+                )
+              )
+              (act_b): Swish()
+              (conv_c): Conv3d(432, 192, kernel_size=(1, 1, 1), stride=(1, 1, 1), bias=False)
+              (norm_c): BatchNorm3d(192, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            )
+            (activation): ReLU()
+          )
+          (5): ResBlock(
+            (branch2): BottleneckBlock(
+              (conv_a): Conv3d(192, 432, kernel_size=(1, 1, 1), stride=(1, 1, 1), bias=False)
+              (norm_a): BatchNorm3d(432, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+              (act_a): ReLU()
+              (conv_b): Conv3d(432, 432, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), groups=432, bias=False)
+              (norm_b): Sequential(
+                (0): BatchNorm3d(432, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+                (1): Identity()
+              )
+              (act_b): Swish()
+              (conv_c): Conv3d(432, 192, kernel_size=(1, 1, 1), stride=(1, 1, 1), bias=False)
+              (norm_c): BatchNorm3d(192, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            )
+            (activation): ReLU()
+          )
+          (6): ResBlock(
+            (branch2): BottleneckBlock(
+              (conv_a): Conv3d(192, 432, kernel_size=(1, 1, 1), stride=(1, 1, 1), bias=False)
+              (norm_a): BatchNorm3d(432, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+              (act_a): ReLU()
+              (conv_b): Conv3d(432, 432, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), groups=432, bias=False)
+              (norm_b): Sequential(
+                (0): BatchNorm3d(432, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+                (1): SqueezeExcitation(
+                  (block): Sequential(
+                    (0): Conv3d(432, 32, kernel_size=(1, 1, 1), stride=(1, 1, 1))
+                    (1): ReLU()
+                    (2): Conv3d(32, 432, kernel_size=(1, 1, 1), stride=(1, 1, 1))
+                    (3): Sigmoid()
+                  )
+                )
+              )
+              (act_b): Swish()
+              (conv_c): Conv3d(432, 192, kernel_size=(1, 1, 1), stride=(1, 1, 1), bias=False)
+              (norm_c): BatchNorm3d(192, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+            )
+            (activation): ReLU()
+          )
+        )
+      )
+      (5): ResNetBasicHead(
+        (pool): ProjectedPool(
+          (pre_conv): Conv3d(192, 432, kernel_size=(1, 1, 1), stride=(1, 1, 1), bias=False)
+          (pre_norm): BatchNorm3d(432, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (pre_act): ReLU()
+          (pool): AvgPool3d(kernel_size=(4, 5, 5), stride=1, padding=0)
+          (post_conv): Conv3d(432, 2048, kernel_size=(1, 1, 1), stride=(1, 1, 1), bias=False)
+          (post_act): ReLU()
+        )
+        (dropout): Dropout(p=0.5, inplace=False)
+        (proj): Identity()
+        (output_pool): AdaptiveAvgPool3d(output_size=1)
+      )
+    )
+  )
+  (1): Linear(in_features=2048, out_features=51, bias=True)
+)
+Number of parameters (M): 0.31
+
+Validation [Epoch: 1/50]: 100%|██████████| 30/30 [00:03<00:00,  9.65it/s, acc=0, acc_mean=0.0191, loss=3.94, loss_mean=3.93]
+Training [Epoch: 1/50]:   7%|▋         | 13/192 [00:01<00:12, 13.97it/s, acc=0, acc_mean=0.0268, loss=3.93, loss_mean=3.93]
+
+
+
+
+
+
+Training [Epoch: 1/50]: 100%|██████████| 192/192 [00:14<00:00, 13.49it/s, acc=0, acc_mean=0.0235, loss=3.96, loss_mean=3.93]
+Validation [Epoch: 2/50]: 100%|██████████| 30/30 [00:02<00:00, 14.06it/s, acc=0, acc_mean=0.0318, loss=3.96, loss_mean=3.9]
+Training [Epoch: 2/50]:   4%|▍         | 8/192 [00:00<00:18, 10.00it/s, acc=0.0625, acc_mean=0.0234, loss=3.87, loss_mean=3.88]
+
+
+
+
+
+
+
+
+Training [Epoch: 2/50]: 100%|██████████| 192/192 [00:18<00:00, 10.65it/s, acc=0, acc_mean=0.0392, loss=3.9, loss_mean=3.88]
+Validation [Epoch: 3/50]: 100%|██████████| 30/30 [00:02<00:00, 13.34it/s, acc=0, acc_mean=0.0381, loss=3.99, loss_mean=3.86]
+Training [Epoch: 3/50]:   4%|▎         | 7/192 [00:00<00:18,  9.81it/s, acc=0.0625, acc_mean=0.0781, loss=3.85, loss_mean=3.85]
+
+
+
+
+
+
+
+Training [Epoch: 3/50]: 100%|██████████| 192/192 [00:15<00:00, 12.40it/s, acc=0, acc_mean=0.05, loss=3.77, loss_mean=3.85]
+Validation [Epoch: 4/50]: 100%|██████████| 30/30 [00:02<00:00, 12.26it/s, acc=0, acc_mean=0.0445, loss=4.01, loss_mean=3.84]
+Training [Epoch: 4/50]:   4%|▎         | 7/192 [00:00<00:14, 12.68it/s, acc=0.0625, acc_mean=0.0625, loss=3.86, loss_mean=3.86]
+
+
+
+
+
+
+
+Training [Epoch: 4/50]: 100%|██████████| 192/192 [00:16<00:00, 11.58it/s, acc=0, acc_mean=0.0611, loss=3.96, loss_mean=3.82]
+Validation [Epoch: 5/50]: 100%|██████████| 30/30 [00:02<00:00, 14.44it/s, acc=0, acc_mean=0.0466, loss=3.97, loss_mean=3.82]
+Training [Epoch: 5/50]:   0%|          | 0/192 [00:00<?, ?it/s]
+
+
+
+
+
+
+
+Training [Epoch: 5/50]: 100%|██████████| 192/192 [00:15<00:00, 12.78it/s, acc=0, acc_mean=0.0614, loss=3.98, loss_mean=3.8]
+Validation [Epoch: 6/50]: 100%|██████████| 30/30 [00:02<00:00, 13.24it/s, acc=0, acc_mean=0.0424, loss=4.01, loss_mean=3.8]
+Validation [Final]:  57%|█████▋    | 17/30 [00:01<00:00, 16.54it/s, acc=0.0625, acc_mean=0.0331, loss=3.77, loss_mean=3.78]
+Validation [Final]: 100%|██████████| 30/30 [00:01<00:00, 15.03it/s, acc=0, acc_mean=0.0424, loss=3.99, loss_mean=3.8]
+
+
+
+Testing: 100%|██████████| 95/95 [00:05<00:00, 16.11it/s, acc=0, acc_mean=0.0659, loss=3.83, loss_mean=3.81]

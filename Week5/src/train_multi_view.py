@@ -14,6 +14,22 @@ from utils import model_analysis
 from utils import statistics
 import random
 
+class EarlyStopping:
+    def __init__(self, patience=50, min_delta=0):
+        self.patience = patience
+        self.min_delta = min_delta
+        self.best_loss = float('inf')
+        self.counter = 0
+        self.early_stop = False
+
+    def __call__(self, val_loss):
+        if val_loss < self.best_loss - self.min_delta:
+            self.best_loss = val_loss
+            self.counter = 0
+        else:
+            self.counter += 1
+            if self.counter >= self.patience:
+                self.early_stop = True
 
 def train_multi_view(
         model: nn.Module,
@@ -315,16 +331,25 @@ if __name__ == "__main__":
 
     model = model.to(args.device)
 
+    early_stopping = EarlyStopping(patience=50, min_delta=0)  # You can adjust the patience value as needed
+
     for epoch in range(args.epochs):
         # Validation
         if epoch % args.validate_every == 0:
             description = f"Validation [Epoch: {epoch+1}/{args.epochs}]"
-            evaluate(model, loaders['validation'], loss_fn, args.device, description=description)
+            val_loss = evaluate(model, loaders['validation'], loss_fn, args.device, description=description)
+            early_stopping(val_loss)
+            if early_stopping.early_stop:
+                print("Early stopping")
+                break
+
         # Training
         description = f"Training [Epoch: {epoch+1}/{args.epochs}]"
-        #train(model, loaders['training'], optimizer, loss_fn, args.device, description=description)
-        train_multi_view(model, loaders['training'], optimizer, loss_fn, args.device, args.num_views, description=description)
+        train_multi_view(model, loaders['training'], optimizer, loss_fn, args.device, description=description)
 
+        if early_stopping.early_stop:
+            print(f'Early stopped in epoch {epoch}!')
+            break
     # Testing
     evaluate(model, loaders['validation'], loss_fn, args.device, description=f"Validation [Final]")
     evaluate(model, loaders['testing'], loss_fn, args.device, description=f"Testing")
