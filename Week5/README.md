@@ -158,4 +158,5 @@ We have only added a function into the `model_creator.py` file that allows the u
 * `multiview_spatial_inference.py`: File used in task 3.2 that does inference using the `HMDB51DatasetSpatial` class.
 * `multiview_train.py`: File used for training in task 4.1, which uses the `TSNDataset` class.
 * `optuna_function.py & optuna_spatial_inference.py`: Files used for performing a random search to find the best results using Optuna.
+* `multiview_train_imp_lr.py`: File used for training in task 4.2, which improves by using Learning Rate Scheculing.
 
