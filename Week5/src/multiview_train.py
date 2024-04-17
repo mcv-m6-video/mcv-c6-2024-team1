@@ -204,7 +204,7 @@ if __name__ == "__main__":
 
         model = model.to(args.device)
 
-        early_stopping = EarlyStopping(patience=3, min_delta=0.15) 
+        early_stopping = EarlyStopping(patience=5, min_delta=0.1) 
 
         for epoch in range(args.epochs):
             # Validation

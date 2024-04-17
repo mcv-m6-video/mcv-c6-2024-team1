@@ -134,3 +134,28 @@ Then, just take into account that HMDB51 was thought to be evaluated in 3-fold c
 If not specified, default values should allow you to run the script without issues.
 
 Check the implementation to understand the different parts of the code.
+
+## Additional files
+During this week, we have added new files for the tasks. We divided them into different folders, according to the original division (datasets, models, utils).
+
+#### Datasets
+* `HMDB51DatasetTemporal.py`: This file includes the definition for the HMDB51 dataset plus all the required code for dividing videos into a defined number of clips.
+* `HMDB51DatasetSpatial.py`: This file includes the definition for the HMDB51 dataset plus all the required code for dividing videos into clips, and each frame of every clip dividing it into five cropped images.  
+* `TSNDataset.py`: This file includes the definition for the TSN dataset, required for task number four.
+
+#### Models
+We have only added a function into the `model_creator.py` file that allows the user to use the original model `x3d_xs` with the layers already trained frozen. 
+
+#### Utils
+* `early_stopping.py`: Definition of the Early Stopping class that allows for using early stopping methodology.
+* `plots.py`: File that contains a helper class for plotting per class accuracies.
+
+#### Others
+* `eval.py`: Evaluation script for baseline model.
+* `generate_class_acc.py`: Script for generating per class accuracy plots and saving them.
+* `train_early_stopping.py`: Script used for training the model with early stopping, used for task 2.
+* `multiview_temporal_inference.py`: File used in task 3.1 that does inference using the `HMDB51DatasetTemporal` class.
+* `multiview_spatial_inference.py`: File used in task 3.2 that does inference using the `HMDB51DatasetSpatial` class.
+* `multiview_train.py`: File used for training in task 4.1, which uses the `TSNDataset` class.
+* `optuna_function.py & optuna_spatial_inference.py`: Files used for performing a random search to find the best results using Optuna.
+
