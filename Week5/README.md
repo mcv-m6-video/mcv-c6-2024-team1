@@ -135,7 +135,7 @@ If not specified, default values should allow you to run the script without issu
 
 Check the implementation to understand the different parts of the code.
 
-## Additional files
+## Additional information
 During this week, we have added new files for the tasks. We divided them into different folders, according to the original division (datasets, models, utils).
 
 #### Datasets
