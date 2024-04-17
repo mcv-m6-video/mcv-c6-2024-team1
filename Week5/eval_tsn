@@ -5,4 +5,4 @@
 #SBATCH --gres gpu:1 # Para pedir Pascales MAX 8
 #SBATCH -o logs/%x_%u_%j.out # File to which STDOUT will be written
 #SBATCH -e logs/%x_%u_%j.err # File to which STDERR will be written
-python src/generate_class_acc.py ./frames --validate-every 1
+python src/train_multi_view.py ./frames 

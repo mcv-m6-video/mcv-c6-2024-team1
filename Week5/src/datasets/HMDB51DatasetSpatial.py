@@ -172,7 +172,7 @@ class HMDB51DatasetSpatial(Dataset):
 
         # Read frames' paths from the video
         frame_paths = sorted(glob(os.path.join(escape(video_path), "*.jpg"))) # get sorted frame paths
-
+    
         clips = []
         for n in range(self.num_clips):
             clip_start = n * self.clip_length * self.temporal_stride

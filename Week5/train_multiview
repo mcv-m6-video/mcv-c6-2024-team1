@@ -5,8 +5,10 @@
 #SBATCH --gres gpu:1 # Para pedir Pascales MAX 8
 #SBATCH -o logs/%x_%u_%j.out # File to which STDOUT will be written
 #SBATCH -e logs/%x_%u_%j.err # File to which STDERR will be written
-python src/multiview_inference.py ./frames \
-    --model-name x3d_xs_frozen \
-    --model-path ./weights/weights_multiview_inference_frozen.pth \
+python src/multiview_train.py ./frames \
+    --num-segments 3 \
     --mode train \
-    --load-pretrain
+    --temporal-stride 16 \
+    --lr 2e-4 \
+    --batch-size 32 \
+    --model-name x3d_xs_frozen

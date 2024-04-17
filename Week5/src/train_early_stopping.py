@@ -22,7 +22,8 @@ def train(
         optimizer: torch.optim.Optimizer, 
         loss_fn: nn.Module,
         device: str,
-        description: str = ""
+        description: str = "",
+        save_path: str = None
     ) -> None:
     """
     Trains the given model using the provided data loader, optimizer, and loss function.
@@ -39,6 +40,7 @@ def train(
         None
     """
     model.train()
+    last_loss = None
     pbar = tqdm(train_loader, desc=description, total=len(train_loader))
     loss_train_mean = statistics.RollingMean(window_size=len(train_loader))
     hits = count = 0 # auxiliary variables for computing accuracy
@@ -64,8 +66,12 @@ def train(
             acc=(float(hits_iter) / len(labels)),
             acc_mean=(float(hits) / count)
         )
-
-
+        last_loss = loss_iter
+    accuracy = (float(hits) / count)
+    if save_path:
+        torch.save(model.state_dict(), save_path)
+    return last_loss, accuracy
+        
 def evaluate(
         model: nn.Module, 
         valid_loader: DataLoader, 
@@ -112,7 +118,7 @@ def evaluate(
                 acc_mean=(float(hits) / count)
             )
             last_loss = loss_iter
-    return last_loss # for early stopping
+    return last_loss, (float(hits) / count) # for early stopping
 
 
 def create_datasets(
@@ -260,7 +266,7 @@ if __name__ == "__main__":
                         help='Optimizer name (supported: "adam" and "sgd" for now)')
     parser.add_argument('--lr', type=float, default=1e-4,
                         help='Learning rate')
-    parser.add_argument('--epochs', type=int, default=4,
+    parser.add_argument('--epochs', type=int, default=50,
                         help='Number of epochs')
     parser.add_argument('--batch-size', type=int, default=16,
                         help='Batch size for the training data loader')
@@ -306,25 +312,26 @@ if __name__ == "__main__":
 
     model = model.to(args.device)
 
-    early_stopping = EarlyStopping(patience=5, min_delta=0.15) 
+    early_stopping = EarlyStopping(patience=5, min_delta=0.1) 
     losses = []
     for epoch in range(args.epochs):
         # Validation
         if epoch % args.validate_every == 0:
             description = f"Validation [Epoch: {epoch+1}/{args.epochs}]"
-            val_loss = evaluate(model, loaders['validation'], loss_fn, args.device, description=description)
+            val_loss, val_accuracy = evaluate(model, loaders['validation'], loss_fn, args.device, description=description)
             early_stopping(val_loss)
             losses.append(val_loss)
             if early_stopping.early_stop:
                 print("Early stopping")
                 break
             # Log validation loss
-            wandb.log({"Validation Loss": val_loss, "Epoch": epoch})
+            wandb.log({"Validation Loss": val_loss, "Validation Accuracy": val_accuracy})
             print("Losses:",losses)
 
         # Training
         description = f"Training [Epoch: {epoch+1}/{args.epochs}]"
-        train(model, loaders['training'], optimizer, loss_fn, args.device, description=description)
+        train_loss, train_accuracy = train(model, loaders['training'], optimizer, loss_fn, args.device, description=description)
+        wandb.log({"Training Loss": train_loss, "Training Accuracy": train_accuracy})
 
     # Testing
     evaluate(model, loaders['validation'], loss_fn, args.device, description=f"Validation [Final]")

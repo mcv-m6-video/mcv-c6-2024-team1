@@ -16,7 +16,7 @@ from train import (create_dataloaders, create_datasets, create_optimizer,
                    evaluate, print_model_summary, train)
 from utils import statistics
 from utils.early_stopping import EarlyStopping
-
+from utils.plots import Plots
 
 def evaluate_multiview(
         model: nn.Module, 
@@ -49,6 +49,7 @@ def evaluate_multiview(
         with torch.no_grad():
             outputs = []
             losses = []
+            # clips shape (B, N, C, T, H, W)
             for i in range(clips.size(1)):  # loop over clips per video
                 curr_clip = clips[:, i]  # clip is now (B, C, T, H, W)
                 curr_outputs = model(curr_clip)
@@ -237,4 +238,8 @@ if __name__ == "__main__":
     evaluate_multiview(model, loaders['validation'], loss_fn, args.device, description=f"Validation [Final]")
     evaluate_multiview(model, loaders['testing'], loss_fn, args.device, description=f"Testing")
 
+    # Compute per-class accuracy
+    per_class_accuracy = statistics.evaluate_per_class_accuracy_temporal(model, loaders['testing'], args.device)
+
+    Plots.generate_per_class_accuracy_plot(per_class_accuracy, "multiview_temporal_inference_plots")
     exit()

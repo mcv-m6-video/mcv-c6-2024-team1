@@ -9,5 +9,5 @@ python src/multiview_spatial_inference.py ./frames \
     --model-path ./weights/weights_multiview_inference_frozen.pth \
     --mode evaluate \
     --temporal-stride 2 \
-    --num-clips 3 \
-    --five-crop-size 120
+    --num-clips 5 \
+    --five-crop-size 150

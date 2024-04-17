@@ -1,47 +1,32 @@
 """ Main script for training a video classification model on HMDB51 dataset. """
 
 import argparse
-import random
-from typing import Dict, Iterator
-
 import torch
 import torch.nn as nn
-from torch.utils.data import DataLoader
 from tqdm import tqdm
+from typing import Dict, Iterator
 
-from datasets.HMDB51Dataset_mv import HMDB51Dataset_mv
+from torch.utils.data import DataLoader
+
+from datasets.HMDB51Dataset import HMDB51Dataset
 from models import model_creator
+import numpy as np
+import wandb
+
 from utils import model_analysis, statistics
+from utils.early_stopping import EarlyStopping
+from utils.plots import Plots
 
-
-class EarlyStopping:
-    def __init__(self, patience=50, min_delta=0):
-        self.patience = patience
-        self.min_delta = min_delta
-        self.best_loss = float('inf')
-        self.counter = 0
-        self.early_stop = False
-
-    def __call__(self, val_loss):
-        if val_loss < self.best_loss - self.min_delta:
-            self.best_loss = val_loss
-            self.counter = 0
-        else:
-            self.counter += 1
-            if self.counter >= self.patience:
-                self.early_stop = True
-
-def train_multi_view(
+def train(
         model: nn.Module,
         train_loader: DataLoader, 
         optimizer: torch.optim.Optimizer, 
         loss_fn: nn.Module,
         device: str,
-        num_views: int,
         description: str = ""
     ) -> None:
     """
-    Trains the given model using the provided data loader, optimizer, and loss function with multi-view sampling.
+    Trains the given model using the provided data loader, optimizer, and loss function.
 
     Args:
         model (nn.Module): The neural network model to be trained.
@@ -49,7 +34,6 @@ def train_multi_view(
         optimizer (torch.optim.Optimizer): The optimizer used for updating model parameters.
         loss_fn (nn.Module): The loss function used to compute the training loss.
         device (str): The device on which the model and data should be processed ('cuda' or 'cpu').
-        num_views (int): Number of views to sample from each video.
         description (str, optional): Additional information for tracking epoch description during training. Defaults to "".
 
     Returns:
@@ -62,39 +46,26 @@ def train_multi_view(
     for batch in pbar:
         # Gather batch and move to device
         clips, labels = batch['clips'].to(device), batch['labels'].to(device)
-        batch_size, num_segments, clip_length, channels, height, width = clips.size()
-        
-        # Sample one clip/view from each predefined temporal segment
-        views = []
-        for i in range(batch_size):
-            selected_views = random.sample(range(num_segments), num_views)
-            for j in selected_views:
-                views.append(clips[i, j])
-        views = torch.stack(views)
-        
         # Forward pass
-        outputs = model(views)
-        
+        outputs = model(clips)
         # Compute loss
         loss = loss_fn(outputs, labels)
-        
         # Backward pass
         loss.backward()
         optimizer.step()
         optimizer.zero_grad()
-        
         # Update progress bar with metrics
         loss_iter = loss.item()
         hits_iter = torch.eq(outputs.argmax(dim=1), labels).sum().item()
         hits += hits_iter
-        count += batch_size
+        count += len(labels)
         pbar.set_postfix(
             loss=loss_iter,
             loss_mean=loss_train_mean(loss_iter),
-            acc=(float(hits_iter) / batch_size),
+            acc=(float(hits_iter) / len(labels)),
             acc_mean=(float(hits) / count)
         )
-        
+
 
 def evaluate(
         model: nn.Module, 
@@ -145,28 +116,28 @@ def evaluate(
 def create_datasets(
         frames_dir: str,
         annotations_dir: str,
-        split: HMDB51Dataset_mv.Split,
+        split: HMDB51Dataset.Split,
         clip_length: int,
         crop_size: int,
         temporal_stride: int
-) -> Dict[str, HMDB51Dataset_mv]:
+) -> Dict[str, HMDB51Dataset]:
     """
     Creates datasets for training, validation, and testing.
 
     Args:
         frames_dir (str): Directory containing the video frames (a separate directory per video).
         annotations_dir (str): Directory containing annotation files.
-        split (HMDB51Dataset_mv.Split): Dataset split (TEST_ON_SPLIT_1, TEST_ON_SPLIT_2, TEST_ON_SPLIT_3).
+        split (HMDB51Dataset.Split): Dataset split (TEST_ON_SPLIT_1, TEST_ON_SPLIT_2, TEST_ON_SPLIT_3).
         clip_length (int): Number of frames of the clips.
         crop_size (int): Size of spatial crops (squares).
         temporal_stride (int): Receptive field of the model will be (clip_length * temporal_stride) / FPS.
 
     Returns:
-        Dict[str, HMDB51Dataset_mv]: A dictionary containing the datasets for training, validation, and testing.
+        Dict[str, HMDB51Dataset]: A dictionary containing the datasets for training, validation, and testing.
     """
     datasets = {}
-    for regime in HMDB51Dataset_mv.Regime:
-        datasets[regime.name.lower()] = HMDB51Dataset_mv(
+    for regime in HMDB51Dataset.Regime:
+        datasets[regime.name.lower()] = HMDB51Dataset(
             frames_dir,
             annotations_dir,
             split,
@@ -180,7 +151,7 @@ def create_datasets(
 
 
 def create_dataloaders(
-        datasets: Dict[str, HMDB51Dataset_mv],
+        datasets: Dict[str, HMDB51Dataset],
         batch_size: int,
         batch_size_eval: int = 8,
         num_workers: int = 2,
@@ -190,7 +161,7 @@ def create_dataloaders(
     Creates data loaders for training, validation, and testing datasets.
 
     Args:
-        datasets (Dict[str, HMDB51Dataset_mv]): A dictionary containing datasets for training, validation, and testing.
+        datasets (Dict[str, HMDB51Dataset]): A dictionary containing datasets for training, validation, and testing.
         batch_size (int, optional): Batch size for the data loaders. Defaults to 8.
         num_workers (int, optional): Number of worker processes for data loading. Defaults to 2.
         pin_memory (bool, optional): Whether to pin memory in DataLoader for faster GPU transfer. Defaults to True.
@@ -293,22 +264,22 @@ if __name__ == "__main__":
                         help='Batch size for the training data loader')
     parser.add_argument('--batch-size-eval', type=int, default=16,
                         help='Batch size for the evaluation data loader')
-    parser.add_argument('--validate-every', type=int, default=5,
+    parser.add_argument('--validate-every', type=int, default=1,
                         help='Number of epochs after which to validate the model')
     parser.add_argument('--num-workers', type=int, default=2,
                         help='Number of worker processes for data loading')
     parser.add_argument('--device', type=str, default='cuda',
                         help='Device to use for training (cuda or cpu)')
-    parser.add_argument('--num-views', type=int, default='1',
-                        help='Number of views')
 
     args = parser.parse_args()
+
+    wandb.init(project="C6_w5", config=args)
 
     # Create datasets
     datasets = create_datasets(
         frames_dir=args.frames_dir,
         annotations_dir=args.annotations_dir,
-        split=HMDB51Dataset_mv.Split.TEST_ON_SPLIT_1, # hardcoded
+        split=HMDB51Dataset.Split.TEST_ON_SPLIT_1, # hardcoded
         clip_length=args.clip_length,
         crop_size=args.crop_size,
         temporal_stride=args.temporal_stride
@@ -331,27 +302,26 @@ if __name__ == "__main__":
 
     model = model.to(args.device)
 
-    early_stopping = EarlyStopping(patience=50, min_delta=0)  # You can adjust the patience value as needed
-
+    wandb.watch(model)
     for epoch in range(args.epochs):
         # Validation
         if epoch % args.validate_every == 0:
             description = f"Validation [Epoch: {epoch+1}/{args.epochs}]"
-            val_loss = evaluate(model, loaders['validation'], loss_fn, args.device, description=description)
-            early_stopping(val_loss)
-            if early_stopping.early_stop:
-                print("Early stopping")
-                break
-
+            evaluate(model, loaders['validation'], loss_fn, args.device, description=description)
         # Training
         description = f"Training [Epoch: {epoch+1}/{args.epochs}]"
-        train_multi_view(model, loaders['training'], optimizer, loss_fn, args.device, description=description)
+        train(model, loaders['training'], optimizer, loss_fn, args.device, description=description)
 
-        if early_stopping.early_stop:
-            print(f'Early stopped in epoch {epoch}!')
-            break
     # Testing
     evaluate(model, loaders['validation'], loss_fn, args.device, description=f"Validation [Final]")
     evaluate(model, loaders['testing'], loss_fn, args.device, description=f"Testing")
+    
+    # Compute per-class accuracy
+    per_class_accuracy = statistics.evaluate_per_class_accuracy(model, loaders['validation'], args.device)
 
+    # Print per-class accuracy
+    print("Per-Class Accuracy:")
+    for i, accuracy in enumerate(per_class_accuracy):
+        print(f"Class {CLASS_NAMES[i]}: {accuracy:.4f}")
+    Plots.generate_per_class_accuracy_plot(per_class_accuracy, "first_model_plots")
     exit()

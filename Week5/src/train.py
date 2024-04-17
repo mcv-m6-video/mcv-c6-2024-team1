@@ -111,6 +111,7 @@ def evaluate(
                 acc=(float(hits_iter) / len(labels)),
                 acc_mean=(float(hits) / count)
             )
+    return sum(loss_valid_mean.data) / len(loss_valid_mean.data), hits / count
 
 
 def create_datasets(

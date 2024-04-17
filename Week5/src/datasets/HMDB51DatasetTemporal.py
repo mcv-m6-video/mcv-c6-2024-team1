@@ -187,7 +187,8 @@ class HMDB51DatasetTemporal(Dataset):
         # Get label from the annotation dataframe
         label = df_idx['class_id']
 
-        return torch.stack(clips), label, video_path
+        # clips shape (N, C, H, W)
+        return torch.stack(clips), label, video_path 
 
         
     def collate_fn(self, batch: list) -> dict:

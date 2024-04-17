@@ -13,7 +13,7 @@ from torchvision.io import read_image
 from torchvision.transforms import v2
 
 
-class HMDB51Dataset_mv(Dataset):
+class TSNDatasetImprov(Dataset):
     """
     Dataset class for HMDB51 dataset.
     """
@@ -53,8 +53,8 @@ class HMDB51Dataset_mv(Dataset):
         split: Split, 
         regime: Regime, 
         clip_length: int, 
-        crop_size: int, 
-        temporal_stride: int
+        crop_size: int,
+        num_clips: int,
     ) -> None:
         """
         Initialize HMDB51 dataset.
@@ -68,6 +68,8 @@ class HMDB51Dataset_mv(Dataset):
             clip_length (int): Number of frames of the clips.
             crop_size (int): Size of spatial crops (squares).
             temporal_stride (int): Receptive field of the model will be (clip_length * temporal_stride) / FPS.
+            num_clips (int): Number of clips for inference.
+            five_crop_size (int): Crop size used in FiveCrop.
         """
         self.videos_dir = videos_dir
         self.annotations_dir = annotations_dir
@@ -75,7 +77,7 @@ class HMDB51Dataset_mv(Dataset):
         self.regime = regime
         self.clip_length = clip_length
         self.crop_size = crop_size
-        self.temporal_stride = temporal_stride
+        self.num_clips = num_clips
 
         self.annotation = self._read_annotation()
         self.transform = self._create_transform()
@@ -91,7 +93,7 @@ class HMDB51Dataset_mv(Dataset):
         split_suffix = "_test_split" + str(self.split.value) + ".txt"
 
         annotation = []
-        for class_name in HMDB51Dataset_mv.CLASS_NAMES:
+        for class_name in TSNDatasetImprov.CLASS_NAMES:
             annotation_file = os.path.join(self.annotations_dir, class_name + split_suffix)
             df = pd.read_csv(annotation_file, sep=" ").dropna(axis=1, how='all') # drop empty columns
             df.columns = ['video_name', 'train_or_test']
@@ -99,7 +101,7 @@ class HMDB51Dataset_mv(Dataset):
             df = df.rename(columns={'video_name': 'video_path'})
             df['video_path'] = os.path.join(self.videos_dir, class_name, '') + df['video_path'].replace('\.avi$', '', regex=True)
             df = df.rename(columns={'train_or_test': 'class_id'})
-            df['class_id'] = HMDB51Dataset_mv.CLASS_NAMES.index(class_name)
+            df['class_id'] = TSNDatasetImprov.CLASS_NAMES.index(class_name)
             annotation += [df]
 
         return pd.concat(annotation, ignore_index=True)
@@ -112,7 +114,7 @@ class HMDB51Dataset_mv(Dataset):
         Returns:
             v2.Compose: Transform for the dataset.
         """
-        if self.regime == HMDB51Dataset_mv.Regime.TRAINING:
+        if self.regime == TSNDatasetImprov.Regime.TRAINING:
             return v2.Compose([
                 v2.RandomResizedCrop(self.crop_size),
                 v2.RandomHorizontalFlip(p=0.5),
@@ -123,9 +125,8 @@ class HMDB51Dataset_mv(Dataset):
         else:
             return v2.Compose([
                 v2.Resize(self.crop_size), # Shortest side of the frame to be resized to the given size
-                v2.CenterCrop(self.crop_size),
                 v2.ToDtype(torch.float32, scale=True),
-                v2.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+                v2.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
             ])
 
 
@@ -136,7 +137,7 @@ class HMDB51Dataset_mv(Dataset):
         Returns:
             int: Number of classes.
         """
-        return len(HMDB51Dataset_mv.CLASS_NAMES)
+        return len(TSNDatasetImprov.CLASS_NAMES)
 
 
     def __len__(self) -> int:
@@ -167,67 +168,70 @@ class HMDB51Dataset_mv(Dataset):
 
         # Read frames' paths from the video
         frame_paths = sorted(glob(os.path.join(escape(video_path), "*.jpg"))) # get sorted frame paths
-        video_len = len(frame_paths)
 
-        # Define the number of views to sample from each video
-        num_views = 1  # You can adjust this number according to your needs
+        segment_length = len(frame_paths) // self.num_clips
+        
+        clips = []
+        for n in range(self.num_clips):
+            clip_start = n * segment_length
+            clip_end = clip_start + segment_length
+            
+            try:
+                clip_indices = sorted(random.sample(range(clip_start, clip_end), self.clip_length))
+            except ValueError:
+                clip_indices = list(range(clip_start, clip_end))
+            clip_frames = [frame_paths[ind] for ind in clip_indices]
 
-        # Initialize lists to store sampled clips and their corresponding labels
-        sampled_clips = []
-        sampled_labels = []
+            # Read and store each clip
+            clip = None
+            for i, frame_path in enumerate(clip_frames):
+                frame = read_image(frame_path)  # (C, H, W)
+                if clip is None:
+                    clip = torch.zeros((self.clip_length, 3, frame.shape[1], frame.shape[2]), dtype=torch.float32)
+                clip[i] = frame
+                
+            clips.append(clip)
 
-        # Iterate over predefined temporal segments and sample one clip/view from each segment
-        for _ in range(num_views):
-            if video_len <= self.clip_length * self.temporal_stride:
-                # Not enough frames to create the clip
-                clip_begin, clip_end = 0, video_len
-            else:
-                # Randomly select a clip from the video with the desired length (start and end frames are inclusive)
-                clip_begin = random.randint(0, max(video_len - self.clip_length * self.temporal_stride, 0))
-                clip_end = clip_begin + self.clip_length * self.temporal_stride
+        # Get label from the annotation dataframe
+        label = df_idx['class_id']
 
-            # Read frames from the video with the desired temporal subsampling
-            video = None
-            for i, path in enumerate(frame_paths[clip_begin:clip_end:self.temporal_stride]):
-                frame = read_image(path)  # (C, H, W)
-                if video is None:
-                    video = torch.zeros((self.clip_length, 3, frame.shape[1], frame.shape[2]), dtype=torch.uint8)
-                video[i] = frame
+        return torch.stack(clips), label, video_path
 
-            # Get label from the annotation dataframe and make sure video was read
-            label = df_idx['class_id']
-            assert video is not None
-
-            # Append sampled clip and its label to the lists
-            sampled_clips.append(video)
-            sampled_labels.append(label)
-
-        # Return the sampled clips, labels, and video path
-        return sampled_clips, sampled_labels, video_path
-
-    
+        
     def collate_fn(self, batch: list) -> dict:
         """
-        Collate function for creating batches.
+        Collate function for creating batches. This version corrects the structure of the batched clips.
 
         Args:
-            batch (list): List of samples.
+            batch (list): List of samples, where each sample is a dictionary containing multiple clips, a label, and a video path.
 
         Returns:
             dict: Dictionary containing batched clips, labels, and paths.
         """
-        # [(clip1, label1, path1), (clip2, label2, path2), ...] 
-        #   -> ([clip1, clip2, ...], [label1, label2, ...], [path1, path2, ...])
-        unbatched_clips, unbatched_labels, paths = zip(*batch)
- 
-        # Apply transformation and permute dimensions: (T, C, H, W) -> (C, T, H, W)
-        transformed_clips = [self.transform(clip).permute(1, 0, 2, 3) for clip in unbatched_clips]
-        # Concatenate clips along the batch dimension: 
-        # B * [(C, T, H, W)] -> B * [(1, C, T, H, W)] -> (B, C, T, H, W)
-        batched_clips = torch.cat([d.unsqueeze(0) for d in transformed_clips], dim=0)
+        # Create lists to hold batched data
+        batched_clips = []
+        batched_labels = []
+        batched_paths = []
+
+        # Process each sample in the batch
+        for sample in batch:
+            clips, label, path = sample
+
+            # Apply transformations and permute dimensions for each clip (T, C, H, W)
+            transformed_clips = [self.transform(clip).permute(1, 0, 2, 3) for clip in clips]
+
+            # Store the transformed clips
+            batched_clips.append(torch.stack(transformed_clips)) # (3, C, T, H, W)
+            batched_labels.append(label)
+            batched_paths.append(path)
+
+        # Stack all elements along the appropriate dimensions
+        batched_clips = torch.stack(batched_clips)  # Should result in shape (Batch, num_clips, C, T, H, W)
+        batched_labels = torch.tensor(batched_labels)
 
         return dict(
-            clips=batched_clips, # (B, C, T, H, W)
-            labels=torch.tensor(unbatched_labels), # (K,)
-            paths=paths  # no need to make it a tensor
+            clips=batched_clips,  # (num_videos, num_clips, C, T, H, W)
+            labels=batched_labels,  # (num_videos,)
+            paths=batched_paths  # List of paths
         )
+
