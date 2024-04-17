@@ -5,6 +5,7 @@
 #SBATCH --gres gpu:1 # Para pedir Pascales MAX 8
 #SBATCH -o logs/%x_%u_%j.out # File to which STDOUT will be written
 #SBATCH -e logs/%x_%u_%j.err # File to which STDERR will be written
-python src/train_multi_view_improvement.py ./frames \
-    --model-path ./weights/weights_multiview_improvements.pth \
-    --mode train \
+
+python src/eval.py ./frames \
+    --model-path ./weights/weights_multiview_task4_1.pth \
+    --temporal-stride 8 \

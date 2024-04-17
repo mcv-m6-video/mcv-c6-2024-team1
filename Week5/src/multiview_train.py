@@ -7,14 +7,23 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-import wandb
+#import wandb
 from datasets.TSNDataset import TSNDataset
 from models import model_creator
 from train import create_dataloaders, create_optimizer, evaluate
 from utils import statistics
 from utils.early_stopping import EarlyStopping
-
-
+from utils.plots import Plots
+CLASS_NAMES = [
+        "brush_hair", "catch", "clap", "climb_stairs", "draw_sword", "drink", 
+        "fall_floor", "flic_flac", "handstand", "hug", "kick", "kiss", "pick", 
+        "pullup", "push", "ride_bike", "run", "shoot_ball", "shoot_gun", "situp", 
+        "smoke", "stand", "sword", "talk", "turn", "wave", 
+        "cartwheel", "chew", "climb", "dive", "dribble", "eat", "fencing", 
+        "golf", "hit", "jump", "kick_ball", "laugh", "pour", "punch", "pushup", 
+        "ride_horse", "shake_hands", "shoot_bow", "sit", "smile", "somersault", 
+        "swing_baseball", "sword_exercise", "throw", "walk"
+    ]
 def aggregate_scores(scores, segments, method='mean'):
     total, num_classes = scores.shape
     num_batches = total // segments
@@ -166,13 +175,13 @@ if __name__ == "__main__":
                         help='Device to use for training (cuda or cpu)')
     parser.add_argument('--model-path', type=str, default="./weights/weights_multiview_task4_1.pth",
                         help="Path from where to load the model or save (if training)")
-    parser.add_argument('--mode', type=str, default="train", choices=["train", "evaluate"],
+    parser.add_argument('--mode', type=str, default="evaluate", choices=["train", "evaluate"],
                         help="Mode for running the script, either train or evaluate")
     parser.add_argument('--num-segments', type=int, default=3,
                         help='Number of segments to divide the video into')
 
     args = parser.parse_args()
-    wandb.init(project="C6_w5_t41", config=args)
+    #wandb.init(project="C6_w5_t41", config=args)
 
     # Create datasets
     datasets = create_datasets_multiview(
@@ -197,7 +206,7 @@ if __name__ == "__main__":
         # Init model, optimizer, and loss function
         model = model_creator.create(args.model_name, args.load_pretrain, datasets["training"].get_num_classes())
         
-        wandb.watch(model)
+        #wandb.watch(model)
         
         optimizer = create_optimizer(args.optimizer_name, model.parameters(), lr=args.lr)
         loss_fn = nn.CrossEntropyLoss()
@@ -213,7 +222,7 @@ if __name__ == "__main__":
                 val_loss, val_accuracy = evaluate(model, loaders['validation'], loss_fn, args.device, description=description)
                 early_stopping(val_loss)
                 
-                wandb.log({"Validation Loss": val_loss, "Validation Accuracy": val_accuracy})
+                #wandb.log({"Validation Loss": val_loss, "Validation Accuracy": val_accuracy})
 
                 if early_stopping.early_stop:
                     print(f"Early stopping in epoch {epoch+1}")
@@ -222,7 +231,7 @@ if __name__ == "__main__":
             # Training
             description = f"Training [Epoch: {epoch+1}/{args.epochs}]"
             train_loss, train_accuracy = train_multiview(model, loaders['training'], optimizer, loss_fn, args.num_segments, args.device, description=description)
-            wandb.log({"Training Loss": train_loss, "Training Accuracy": train_accuracy})
+            #wandb.log({"Training Loss": train_loss, "Training Accuracy": train_accuracy})
         
         if args.model_path:
             torch.save(model.state_dict(), args.model_path)
@@ -241,7 +250,12 @@ if __name__ == "__main__":
     # Testing
     evaluate(model, loaders['validation'], loss_fn, args.device, description=f"Validation [Final]")
     evaluate(model, loaders['testing'], loss_fn, args.device, description=f"Testing")
-    
-    wandb.finish()
+    # Compute per-class accuracy
+    per_class_accuracy = statistics.evaluate_per_class_accuracy(model, loaders['validation'], args.device)
+    print("Per-Class Accuracy:")
+    for i, accuracy in enumerate(per_class_accuracy):
+        print(f"Class {CLASS_NAMES[i]}: {accuracy:.4f}")
+    Plots.generate_per_class_accuracy_plot(per_class_accuracy, "tsn_model_plots")
+    #wandb.finish()
 
     exit()

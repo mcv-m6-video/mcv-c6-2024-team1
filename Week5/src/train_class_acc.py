@@ -16,7 +16,16 @@ import wandb
 from utils import model_analysis, statistics
 from utils.early_stopping import EarlyStopping
 from utils.plots import Plots
-
+CLASS_NAMES = [
+        "brush_hair", "catch", "clap", "climb_stairs", "draw_sword", "drink", 
+        "fall_floor", "flic_flac", "handstand", "hug", "kick", "kiss", "pick", 
+        "pullup", "push", "ride_bike", "run", "shoot_ball", "shoot_gun", "situp", 
+        "smoke", "stand", "sword", "talk", "turn", "wave", 
+        "cartwheel", "chew", "climb", "dive", "dribble", "eat", "fencing", 
+        "golf", "hit", "jump", "kick_ball", "laugh", "pour", "punch", "pushup", 
+        "ride_horse", "shake_hands", "shoot_bow", "sit", "smile", "somersault", 
+        "swing_baseball", "sword_exercise", "throw", "walk"
+    ]
 def train(
         model: nn.Module,
         train_loader: DataLoader, 
@@ -279,6 +288,8 @@ if __name__ == "__main__":
                         help='Number of worker processes for data loading')
     parser.add_argument('--device', type=str, default='cuda',
                         help='Device to use for training (cuda or cpu)')
+    parser.add_argument('--model-path', type=str, default="./weights/weights_baseline.pth",
+                        help="Path from where to load the model or save (if training)")
 
     args = parser.parse_args()
 
@@ -307,27 +318,37 @@ if __name__ == "__main__":
     optimizer = create_optimizer(args.optimizer_name, model.parameters(), lr=args.lr)
     loss_fn = nn.CrossEntropyLoss()
 
-    print_model_summary(model, args.clip_length, args.crop_size)
+    if args.mode=="train":
 
-    model = model.to(args.device)
+        print_model_summary(model, args.clip_length, args.crop_size)
+        model = model.to(args.device)
 
-    wandb.watch(model)
-    for epoch in range(args.epochs):
-        # Validation
-        if epoch % args.validate_every == 0:
-            description = f"Validation [Epoch: {epoch+1}/{args.epochs}]"
-            val_loss, val_accuracy = evaluate(model, loaders['validation'], loss_fn, args.device, description=description)
-            # Log validation loss
-            wandb.log({"Validation Loss": val_loss, "Validation Accuracy": val_accuracy})
+        wandb.watch(model)
+        for epoch in range(args.epochs):
+            # Validation
+            if epoch % args.validate_every == 0:
+                description = f"Validation [Epoch: {epoch+1}/{args.epochs}]"
+                val_loss, val_accuracy = evaluate(model, loaders['validation'], loss_fn, args.device, description=description)
+                # Log validation loss
+                wandb.log({"Validation Loss": val_loss, "Validation Accuracy": val_accuracy})
 
-        # Training
-        description = f"Training [Epoch: {epoch+1}/{args.epochs}]"
-        train_loss, train_accuracy = train(model, loaders['training'], optimizer, loss_fn, args.device, description=description)
-        wandb.log({"Training Loss": train_loss, "Training Accuracy": train_accuracy})
-    # Testing
-    evaluate(model, loaders['validation'], loss_fn, args.device, description=f"Validation [Final]")
-    evaluate(model, loaders['testing'], loss_fn, args.device, description=f"Testing")
-    
+            # Training
+            description = f"Training [Epoch: {epoch+1}/{args.epochs}]"
+            train_loss, train_accuracy = train(model, loaders['training'], optimizer, loss_fn, args.device, description=description)
+            wandb.log({"Training Loss": train_loss, "Training Accuracy": train_accuracy})
+        # Testing
+        evaluate(model, loaders['validation'], loss_fn, args.device, description=f"Validation [Final]")
+        evaluate(model, loaders['testing'], loss_fn, args.device, description=f"Testing")
+    else:
+        model = model_creator.load_model(
+            args.model_name, 
+            args.load_pretrain, 
+            datasets["training"].get_num_classes(),
+            args.model_path
+        )
+        
+        model = model.to(args.device)
+        loss_fn = nn.CrossEntropyLoss()
     # Compute per-class accuracy
     per_class_accuracy = statistics.evaluate_per_class_accuracy(model, loaders['validation'], args.device)
 

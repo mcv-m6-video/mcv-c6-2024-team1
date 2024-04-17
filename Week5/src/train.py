@@ -308,7 +308,7 @@ if __name__ == "__main__":
             evaluate(model, loaders['validation'], loss_fn, args.device, description=description)
         # Training
         description = f"Training [Epoch: {epoch+1}/{args.epochs}]"
-        train(model, loaders['training'], optimizer, loss_fn, args.device, description=description)
+        train(model, loaders['training'], optimizer, loss_fn, args.device, description=description, save_path="./weights/weights_baseline.pth")
 
     # Testing
     evaluate(model, loaders['validation'], loss_fn, args.device, description=f"Validation [Final]")
