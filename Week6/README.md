@@ -139,6 +139,9 @@ Check the implementation to understand the different parts of the code.
 ## Additional information
 During this week, we have added new files for the tasks. We divided them into different folders, according to the original division (datasets, models, utils).
 
+#### Datasets
+The HMDB51SingleImag dataset loads a single frame random frame for each video. Used for Resnet training.
+
 #### Models
 We have added a function for each one of the models used in the `model_creator.py` file that allows the user to specify a name and use that model. 
 
@@ -149,5 +152,8 @@ We added the following scripts to perform additional analysis of our results:
 * `study_model.py`: Script to with additional functions to study the model.
 
 #### Train
-Every file with the format `train_X.py`, where `X` can be any model of the ones specified in the models section, is used for training that model. It follows the same structure as the one given as default but tweaking it a bit for each model. For instance, for the case of `MobileNetV3`, since it's an image model, the training loop is modified to accept images and aggregate the outputs of all frames of a clip. 
+Every file with the format `train_X.py`, where `X` can be any model of the ones specified in the models section, is used for training that model. It follows the same structure as the one given as default but tweaking it a bit for each model. For instance, for the case of `MobileNetV3`, since it's an image model, the training loop is modified to accept images and aggregate the outputs of all frames of a clip.
+
+#### Eval
+The `eval_weights.py` takes the same arguments as train files, and will only run evaluation procedures. Also provides some plots.
 
