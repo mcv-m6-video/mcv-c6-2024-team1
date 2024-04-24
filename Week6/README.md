@@ -145,6 +145,7 @@ We have added a function for each one of the models used in the `model_creator.p
 #### Utils
 * `barplots.py`: Script to create bar plots.
 * `bubble_plot.py`: Script to create bubble plots.
+* `study_model.py`: Script to with additional functions to study the model.
 
 #### Train
 Every file with the format `train_X.py`, where `X` can be any model of the ones specified in the models section, is used for training that model. It follows the same structure as the one given as default but tweaking it a bit for each model. For instance, for the case of `MobileNetV3`, since it's an image model, the training loop is modified to accept images and aggregate the outputs of all frames of a clip. 
