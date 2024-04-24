@@ -143,6 +143,7 @@ During this week, we have added new files for the tasks. We divided them into di
 We have added a function for each one of the models used in the `model_creator.py` file that allows the user to specify a name and use that model. 
 
 #### Utils
+We added the following scripts to perform additional analysis of our results:
 * `barplots.py`: Script to create bar plots.
 * `bubble_plot.py`: Script to create bubble plots.
 * `study_model.py`: Script to with additional functions to study the model.
