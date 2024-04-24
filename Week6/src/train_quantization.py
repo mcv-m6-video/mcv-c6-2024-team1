@@ -1,16 +1,17 @@
 """ Main script for training a video classification model on HMDB51 dataset. """
 
 import argparse
-from typing import Dict, Iterator
-
 import torch
 import torch.nn as nn
-from torch.utils.data import DataLoader
 from tqdm import tqdm
+from typing import Dict, Iterator
+
+from torch.utils.data import DataLoader
 
 from datasets.HMDB51Dataset import HMDB51Dataset
 from models import model_creator
-from utils import model_analysis, statistics
+from utils import model_analysis
+from utils import statistics
 
 
 def train(
@@ -19,8 +20,7 @@ def train(
         optimizer: torch.optim.Optimizer, 
         loss_fn: nn.Module,
         device: str,
-        description: str = "",
-        save_path: str = None
+        description: str = ""
     ) -> None:
     """
     Trains the given model using the provided data loader, optimizer, and loss function.
@@ -62,9 +62,6 @@ def train(
             acc=(float(hits_iter) / len(labels)),
             acc_mean=(float(hits) / count)
         )
-        
-    if save_path:
-        torch.save(model.state_dict(), save_path)
 
 
 def evaluate(
@@ -111,7 +108,6 @@ def evaluate(
                 acc=(float(hits_iter) / len(labels)),
                 acc_mean=(float(hits) / count)
             )
-    return sum(loss_valid_mean.data) / len(loss_valid_mean.data), hits / count
 
 
 def create_datasets(
@@ -235,6 +231,9 @@ def print_model_summary(
         print(f"Number of parameters (M): {round(num_params / 10e6, 2)}")
 
     if print_FLOPs:
+        print(type(clip_length))
+        print(type(crop_size))
+        print(type(crop_size))
         num_FLOPs = model_analysis.calculate_operations(model, clip_length, crop_size, crop_size)
         print(f"Number of FLOPs (G): {round(num_FLOPs / 10e9, 2)}")
 
@@ -294,10 +293,18 @@ if __name__ == "__main__":
 
     # Init model, optimizer, and loss function
     model = model_creator.create(args.model_name, args.load_pretrain, datasets["training"].get_num_classes())
+    
+    # Dynamic quantization
+    model = torch.quantization.quantize_dynamic(
+        model,
+        {torch.nn.Linear},
+        dtype=torch.qint8
+    )
+    
     optimizer = create_optimizer(args.optimizer_name, model.parameters(), lr=args.lr)
     loss_fn = nn.CrossEntropyLoss()
 
-    print_model_summary(model, args.clip_length, args.crop_size)
+    print_model_summary(model, args.clip_length, args.crop_size, print_FLOPs=False)
 
     model = model.to(args.device)
 
@@ -308,7 +315,7 @@ if __name__ == "__main__":
             evaluate(model, loaders['validation'], loss_fn, args.device, description=description)
         # Training
         description = f"Training [Epoch: {epoch+1}/{args.epochs}]"
-        train(model, loaders['training'], optimizer, loss_fn, args.device, description=description, save_path="./weights/weights_baseline.pth")
+        train(model, loaders['training'], optimizer, loss_fn, args.device, description=description)
 
     # Testing
     evaluate(model, loaders['validation'], loss_fn, args.device, description=f"Validation [Final]")

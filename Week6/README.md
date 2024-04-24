@@ -134,3 +134,18 @@ Then, just take into account that HMDB51 was thought to be evaluated in 3-fold c
 If not specified, default values should allow you to run the script without issues.
 
 Check the implementation to understand the different parts of the code.
+
+
+## Additional information
+During this week, we have added new files for the tasks. We divided them into different folders, according to the original division (datasets, models, utils).
+
+#### Models
+We have added a function for each one of the models used in the `model_creator.py` file that allows the user to specify a name and use that model. 
+
+#### Utils
+* `barplots.py`: Script to create bar plots.
+* `bubble_plot.py`: Script to create bubble plots.
+
+#### Train
+Every file with the format `train_X.py`, where `X` can be any model of the ones specified in the models section, is used for training that model. It follows the same structure as the one given as default but tweaking it a bit for each model. For instance, for the case of `MobileNetV3`, since it's an image model, the training loop is modified to accept images and aggregate the outputs of all frames of a clip. 
+

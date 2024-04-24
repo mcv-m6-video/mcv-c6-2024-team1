@@ -1,16 +1,19 @@
 """ Main script for training a video classification model on HMDB51 dataset. """
 
 import argparse
+import wandb
+import torch
+import numpy as np
+import torch.nn as nn
+from tqdm import tqdm
 from typing import Dict, Iterator
 
-import torch
-import torch.nn as nn
 from torch.utils.data import DataLoader
-from tqdm import tqdm
 
 from datasets.HMDB51Dataset import HMDB51Dataset
 from models import model_creator
-from utils import model_analysis, statistics
+from utils import model_analysis
+from utils import statistics
 
 
 def train(
@@ -66,6 +69,7 @@ def train(
     if save_path:
         torch.save(model.state_dict(), save_path)
 
+    return loss_train_mean(loss_iter), float(hits) / count
 
 def evaluate(
         model: nn.Module, 
@@ -111,8 +115,8 @@ def evaluate(
                 acc=(float(hits_iter) / len(labels)),
                 acc_mean=(float(hits) / count)
             )
-    return sum(loss_valid_mean.data) / len(loss_valid_mean.data), hits / count
 
+    return sum(loss_valid_mean.data) / len(loss_valid_mean.data), hits / count
 
 def create_datasets(
         frames_dir: str,
@@ -203,14 +207,18 @@ def create_optimizer(optimizer_name: str, parameters: Iterator[nn.Parameter], lr
     else:
         raise ValueError(f"Unknown optimizer name: {optimizer_name}")
 
-
+def freeze_layers(model: nn.Module, num_layers_to_freeze: int):
+    for idx, param in enumerate(model.parameters()):
+        if idx < num_layers_to_freeze:
+            param.requires_grad = False
+            
 def print_model_summary(
         model: nn.Module,
         clip_length: int,
         crop_size: int,
         print_model: bool = True,
         print_params: bool = True,
-        print_FLOPs: bool = True
+        print_FLOPs: bool = False
     ) -> None:
     """
     Prints a summary of the given model.
@@ -229,14 +237,14 @@ def print_model_summary(
     if print_model:
         print(model)
 
-    if print_params:
-        num_params = sum(p.numel() for p in model.parameters())
-        #num_params = model_analysis.calculate_parameters(model) # should be equivalent
-        print(f"Number of parameters (M): {round(num_params / 10e6, 2)}")
+    # if print_params:
+    #     num_params = sum(p.numel() for p in model.parameters())
+    #     #num_params = model_analysis.calculate_parameters(model) # should be equivalent
+    #     print(f"Number of parameters (M): {round(num_params / 10e6, 2)}")
 
-    if print_FLOPs:
-        num_FLOPs = model_analysis.calculate_operations(model, clip_length, crop_size, crop_size)
-        print(f"Number of FLOPs (G): {round(num_FLOPs / 10e9, 2)}")
+    # if print_FLOPs:
+    #     num_FLOPs = model_analysis.calculate_operations(model, clip_length, crop_size, crop_size)
+    #     print(f"Number of FLOPs (G): {round(num_FLOPs / 10e9, 2)}")
 
 
 if __name__ == "__main__":
@@ -271,8 +279,11 @@ if __name__ == "__main__":
                         help='Number of worker processes for data loading')
     parser.add_argument('--device', type=str, default='cuda',
                         help='Device to use for training (cuda or cpu)')
+    parser.add_argument('--model-path', type=str, default="weights/weights_swin3d_s.pth",
+                        help="Path from where to load the model or save (if training)")
 
     args = parser.parse_args()
+    wandb.init(project="C6_w6_swin3d_s", config=args)
 
     # Create datasets
     datasets = create_datasets(
@@ -294,10 +305,18 @@ if __name__ == "__main__":
 
     # Init model, optimizer, and loss function
     model = model_creator.create(args.model_name, args.load_pretrain, datasets["training"].get_num_classes())
+    wandb.watch(model)
+    num_layers = sum(1 for _ in model.parameters())
+    print(f"Total number of layers in the model: {num_layers}")
+    
     optimizer = create_optimizer(args.optimizer_name, model.parameters(), lr=args.lr)
     loss_fn = nn.CrossEntropyLoss()
 
-    print_model_summary(model, args.clip_length, args.crop_size)
+    # Freeze layers
+    num_layers_to_freeze = 100  # reduce number of layers for memory limitations
+    freeze_layers(model, num_layers_to_freeze)
+
+    # print_model_summary(model, args.clip_length, args.crop_size)
 
     model = model.to(args.device)
 
@@ -305,13 +324,20 @@ if __name__ == "__main__":
         # Validation
         if epoch % args.validate_every == 0:
             description = f"Validation [Epoch: {epoch+1}/{args.epochs}]"
-            evaluate(model, loaders['validation'], loss_fn, args.device, description=description)
+            val_loss, val_accuracy = evaluate(model, loaders['validation'], loss_fn, args.device, description=description)
+            wandb.log({"Validation Loss": val_loss, "Validation Accuracy": val_accuracy})
+
         # Training
         description = f"Training [Epoch: {epoch+1}/{args.epochs}]"
-        train(model, loaders['training'], optimizer, loss_fn, args.device, description=description, save_path="./weights/weights_baseline.pth")
+        train_loss, train_accuracy = train(model, loaders['training'], optimizer, loss_fn, args.device, description=description)
+        wandb.log({"Train Loss": train_loss, "Train Accuracy": train_accuracy})
+
+    if args.model_path:
+        torch.save(model.state_dict(), args.model_path)
 
     # Testing
     evaluate(model, loaders['validation'], loss_fn, args.device, description=f"Validation [Final]")
     evaluate(model, loaders['testing'], loss_fn, args.device, description=f"Testing")
+    wandb.finish()
 
     exit()

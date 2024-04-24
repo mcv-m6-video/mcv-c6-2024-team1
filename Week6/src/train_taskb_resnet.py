@@ -1,7 +1,9 @@
-""" Main script for training a video classification model on HMDB51 dataset. """
+""" Ablation study: training a Resnet152 model on single images, and evaluate using majority voting on frames from a clip. This way we remove temporal information """
 
 import argparse
 from typing import Dict, Iterator
+from pathlib import Path
+import os
 
 import torch
 import torch.nn as nn
@@ -9,6 +11,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from datasets.HMDB51Dataset import HMDB51Dataset
+from datasets.HMDB51SingleImg import HMDB51SingleDataset
 from models import model_creator
 from utils import model_analysis, statistics
 
@@ -19,8 +22,7 @@ def train(
         optimizer: torch.optim.Optimizer, 
         loss_fn: nn.Module,
         device: str,
-        description: str = "",
-        save_path: str = None
+        description: str = ""
     ) -> None:
     """
     Trains the given model using the provided data loader, optimizer, and loss function.
@@ -42,9 +44,9 @@ def train(
     hits = count = 0 # auxiliary variables for computing accuracy
     for batch in pbar:
         # Gather batch and move to device
-        clips, labels = batch['clips'].to(device), batch['labels'].to(device)
+        frames, labels = batch['frames'].to(device), batch['labels'].to(device)
         # Forward pass
-        outputs = model(clips)
+        outputs = model(frames)
         # Compute loss
         loss = loss_fn(outputs, labels)
         # Backward pass
@@ -62,9 +64,6 @@ def train(
             acc=(float(hits_iter) / len(labels)),
             acc_mean=(float(hits) / count)
         )
-        
-    if save_path:
-        torch.save(model.state_dict(), save_path)
 
 
 def evaluate(
@@ -95,22 +94,30 @@ def evaluate(
         # Gather batch and move to device
         clips, labels = batch['clips'].to(device), batch['labels'].to(device)
         # Forward pass
-        with torch.no_grad():
-            outputs = model(clips)
-            # Compute loss (just for logging, not used for backpropagation)
-            loss = loss_fn(outputs, labels) 
-            # Compute metrics
-            loss_iter = loss.item()
-            hits_iter = torch.eq(outputs.argmax(dim=1), labels).sum().item()
-            hits += hits_iter
-            count += len(labels)
-            # Update progress bar with metrics
-            pbar.set_postfix(
-                loss=loss_iter,
-                loss_mean=loss_valid_mean(loss_iter),
-                acc=(float(hits_iter) / len(labels)),
-                acc_mean=(float(hits) / count)
-            )
+        final_outputs = torch.zeros(clips.shape[0], device=device)
+        for i, (clip, label) in enumerate(zip(clips, labels)): # (T, C, H, W) since permute = False
+            label = label.expand(clip.shape[0]) # (T,)
+            with torch.inference_mode():
+                outputs = model(clip) # (T, n_classes)
+                # Compute loss (just for logging, not used for backpropagation)
+                loss = loss_fn(outputs, label) 
+                # Compute metrics
+                loss_iter = loss.item()
+                
+                preds = outputs.argmax(dim=1)
+                clss, counts = preds.unique(return_counts=True)
+                final_outputs[i] = clss[counts.argmax()]
+                
+        hits_iter = torch.eq(final_outputs, labels).sum().item()
+        hits += hits_iter
+        count += len(labels)
+        # Update progress bar with metrics
+        pbar.set_postfix(
+            loss=loss_iter,
+            loss_mean=loss_valid_mean(loss_iter),
+            acc=(float(hits_iter) / len(labels)),
+            acc_mean=(float(hits) / count)
+        )
     return sum(loss_valid_mean.data) / len(loss_valid_mean.data), hits / count
 
 
@@ -138,15 +145,25 @@ def create_datasets(
     """
     datasets = {}
     for regime in HMDB51Dataset.Regime:
-        datasets[regime.name.lower()] = HMDB51Dataset(
-            frames_dir,
-            annotations_dir,
-            split,
-            regime,
-            clip_length,
-            crop_size,
-            temporal_stride
-        )
+        if regime.name.lower() == "training":
+            datasets[regime.name.lower()] = HMDB51SingleDataset(
+                frames_dir,
+                annotations_dir,
+                split,
+                regime,
+                crop_size
+            )
+        else:
+            datasets[regime.name.lower()] = HMDB51Dataset(
+                frames_dir,
+                annotations_dir,
+                split,
+                regime,
+                clip_length,
+                crop_size,
+                temporal_stride,
+                permute=False
+            )
     
     return datasets
 
@@ -235,11 +252,13 @@ def print_model_summary(
         print(f"Number of parameters (M): {round(num_params / 10e6, 2)}")
 
     if print_FLOPs:
-        num_FLOPs = model_analysis.calculate_operations(model, clip_length, crop_size, crop_size)
+        num_FLOPs = model_analysis.calculate_operations_resnet(model, clip_length, crop_size, crop_size)
         print(f"Number of FLOPs (G): {round(num_FLOPs / 10e9, 2)}")
 
 
 if __name__ == "__main__":
+    jobid = os.getenv('SLURM_JOB_ID')
+    
     parser = argparse.ArgumentParser(description='Train a video classification model on HMDB51 dataset.')
     parser.add_argument('frames_dir', type=str, 
                         help='Directory containing video files')
@@ -247,25 +266,27 @@ if __name__ == "__main__":
                         help='Directory containing annotation files')
     parser.add_argument('--clip-length', type=int, default=4,
                         help='Number of frames of the clips')
-    parser.add_argument('--crop-size', type=int, default=182,
+    parser.add_argument('--crop-size', type=int, default=224,
                         help='Size of spatial crops (squares)')
     parser.add_argument('--temporal-stride', type=int, default=12,
                         help='Receptive field of the model will be (clip_length * temporal_stride) / FPS')
-    parser.add_argument('--model-name', type=str, default='x3d_xs',
+    parser.add_argument('--model-name', type=str, default='resnet152',
                         help='Model name as defined in models/model_creator.py')
-    parser.add_argument('--load-pretrain', action='store_true', default=False,
+    parser.add_argument('--save-path', type=str, default="weights/",
+                        help='Directory where to save weights')
+    parser.add_argument('--load-pretrain', action='store_true', default=True,
                     help='Load pretrained weights for the model (if available)')
     parser.add_argument('--optimizer-name', type=str, default="adam",
                         help='Optimizer name (supported: "adam" and "sgd" for now)')
     parser.add_argument('--lr', type=float, default=1e-4,
                         help='Learning rate')
-    parser.add_argument('--epochs', type=int, default=50,
+    parser.add_argument('--epochs', type=int, default=100,
                         help='Number of epochs')
-    parser.add_argument('--batch-size', type=int, default=16,
+    parser.add_argument('--batch-size', type=int, default=64,
                         help='Batch size for the training data loader')
     parser.add_argument('--batch-size-eval', type=int, default=16,
                         help='Batch size for the evaluation data loader')
-    parser.add_argument('--validate-every', type=int, default=5,
+    parser.add_argument('--validate-every', type=int, default=2,
                         help='Number of epochs after which to validate the model')
     parser.add_argument('--num-workers', type=int, default=2,
                         help='Number of worker processes for data loading')
@@ -301,14 +322,22 @@ if __name__ == "__main__":
 
     model = model.to(args.device)
 
+    save_path = Path(args.save_path) / f'weights_taskb_{args.model_name}_{jobid}.pth'
+    best_path = save_path.parent / (save_path.stem + '_best' + save_path.suffix)
+    best_acc = 0
     for epoch in range(args.epochs):
         # Validation
         if epoch % args.validate_every == 0:
             description = f"Validation [Epoch: {epoch+1}/{args.epochs}]"
-            evaluate(model, loaders['validation'], loss_fn, args.device, description=description)
+            val_loss, val_acc = evaluate(model, loaders['validation'], loss_fn, args.device, description=description)
+            if val_acc > best_acc:
+                print(f"Saving model with best validation accuracy: {val_acc} at epoch {epoch}.")
+                torch.save(model.state_dict(), best_path)
+                best_acc = val_acc
         # Training
         description = f"Training [Epoch: {epoch+1}/{args.epochs}]"
-        train(model, loaders['training'], optimizer, loss_fn, args.device, description=description, save_path="./weights/weights_baseline.pth")
+        train(model, loaders['training'], optimizer, loss_fn, args.device, description=description)
+        torch.save(model.state_dict(), save_path)
 
     # Testing
     evaluate(model, loaders['validation'], loss_fn, args.device, description=f"Validation [Final]")
