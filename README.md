@@ -31,3 +31,6 @@ The contents of the fourth week are in the folder `Week5`. The `README` file for
 
 ## Week 6
 The contents of the fourth week are in the folder `Week6`. The `README` file for this week can be found in [here](Week6/README.md) 
+
+## Week 7
+The contents of the fourth week are in the folder `Week7`. The `README` file for this week can be found in [here](Week7/README.md) 
