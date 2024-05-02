@@ -135,25 +135,21 @@ If not specified, default values should allow you to run the script without issu
 
 Check the implementation to understand the different parts of the code.
 
+### Late fusion
+For late fusion, use scripts `generate_outputs_skeleton.py` and `generate_outputs_image.py` to save the class scores of each modality. Then run `late_fusion.py`.
 
-## Additional information
-During this week, we have added new files for the tasks. We divided them into different folders, according to the original division (datasets, models, utils).
-
-#### Datasets
-The HMDB51SingleImag dataset loads a single frame random frame for each video. Used for Resnet training.
+### Early fusion
+To train the early fusion model, run `train_early_fusion.py` with the same parameters described above.
 
 #### Models
-We have added a function for each one of the models used in the `model_creator.py` file that allows the user to specify a name and use that model. 
+We added two new files with respect to last week. `FusionModalitiesNetwork.py` contains the multimodal model with early fusion, `EarlyFusion.py` contains the additive fusion layer.
 
 #### Utils
 We added the following scripts to perform additional analysis of our results:
-* `barplots.py`: Script to create bar plots.
-* `bubble_plot.py`: Script to create bubble plots.
-* `study_model.py`: Script to with additional functions to study the model.
-
-#### Train
-Every file with the format `train_X.py`, where `X` can be any model of the ones specified in the models section, is used for training that model. It follows the same structure as the one given as default but tweaking it a bit for each model. For instance, for the case of `MobileNetV3`, since it's an image model, the training loop is modified to accept images and aggregate the outputs of all frames of a clip.
+* `plots.py`: Class for the creation of plots such as the confusion matrix and per-class accuracy.
+* `model_analysis.py`: Script to with additional functions to study the model.
+* `gif_skeleton.py`: Script to overlay skeleton over original video.
 
 #### Eval
-The `eval_weights.py` takes the same arguments as train files, and will only run evaluation procedures. Also provides some plots.
+The `plots_early_fusion.py` and `plots_rgb_diff.py` takes the same arguments as train files, and will only run evaluation procedures. Also provides some plots.
 
