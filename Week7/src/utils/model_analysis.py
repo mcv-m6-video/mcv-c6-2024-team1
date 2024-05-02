@@ -28,6 +28,25 @@ def calculate_operations(model, clip_length, crop_height, crop_width, channels: 
     return flops.total()
 
 
+def calculate_operations_fusion(model, clip_length, crop_height, crop_width, channels: int = 3) -> int:
+    """
+    Calculate the number of operations of a model.
+
+    Args:
+        model (nn.Module): Model to calculate the number of operations.
+        clip_length (int): Number of frames in a clip.
+        crop_height (int): Height of the crop.
+        crop_width (int): Width of the crop.
+
+    Returns:
+        int: Number of operations of the model.
+    """
+    mock_embeddings = torch.randn(1, 512).to("cuda")
+    mock_input = torch.randn(1, channels, clip_length, crop_height, crop_width).to("cuda")
+    flops = nn.FlopCountAnalysis(model, (mock_input, mock_embeddings))
+    return flops.total()
+
+
 def calculate_parameters(model) -> int:
     """
     Calculate the number of parameters of a model.

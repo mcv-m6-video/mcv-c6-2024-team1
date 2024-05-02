@@ -12,7 +12,7 @@ from tqdm import tqdm
 from datasets.HMDB51Dataset import HMDB51Dataset
 from models import model_creator
 from train import create_dataloaders, create_datasets
-from utils import statistics
+from utils import rolling_mean
 
 def save_outputs(
     model: nn.Module, 
@@ -42,7 +42,7 @@ def save_outputs(
     save_path = save_file
 
     pbar = tqdm(valid_loader, desc=description, total=len(valid_loader))
-    loss_valid_mean = statistics.RollingMean(window_size=len(valid_loader))
+    loss_valid_mean = rolling_mean.RollingMean(window_size=len(valid_loader))
 
     gt = {}
     outputs_dict = {}
@@ -109,7 +109,7 @@ def evaluate_classes(
     """
     model.eval()
     pbar = tqdm(valid_loader, desc=description, total=len(valid_loader))
-    loss_valid_mean = statistics.RollingMean(window_size=len(valid_loader))
+    loss_valid_mean = rolling_mean.RollingMean(window_size=len(valid_loader))
     hits = count = 0  # auxiliary variables for computing accuracy
     per_class_hits = defaultdict(int)
     per_class_count = defaultdict(int)

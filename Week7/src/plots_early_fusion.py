@@ -7,6 +7,8 @@ from utils.plots import Plots
 import torch.nn as nn
 from torch.utils.data import DataLoader
 from tqdm import tqdm
+import matplotlib.pyplot as plt
+import numpy as np
 
 from datasets.HMDB51Dataset import HMDB51Dataset
 from utils import rolling_mean
@@ -21,6 +23,19 @@ def load_test_embeddings(test_path: str) -> Dict:
         test_embeddings_keypoints = pickle.load(f)
 
     return test_embeddings_keypoints
+
+
+def plot_additive_fusion_weights(model: FusionModalitiesNet):
+    weight_vec1, weight_vec2 = [vec.W.detach().cpu().numpy() for vec in model.vector_fusion.weight_vecs[0:2]]
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20,10))
+    ax1.hist(weight_vec1, bins=20, color='skyblue')
+    print(f"{np.sum(weight_vec1**2)=}")
+    ax1.set_title('Weights for video')
+    ax2.hist(weight_vec2, bins=20, color='skyblue')
+    print(f"{np.sum(weight_vec2**2)=}")
+    ax2.set_title('Weights for skeleton')
+    fig.tight_layout()
+    fig.savefig('plots/wheights_histogram.png')
 
 
 def evaluate(
@@ -222,6 +237,9 @@ if __name__ == "__main__":
     state = torch.load(args.model_path)
     model.load_state_dict(state)
 
+    plot_additive_fusion_weights(model)
+    exit()
+    
     # Testing
     y_test, y_pred = evaluate(
         model, 

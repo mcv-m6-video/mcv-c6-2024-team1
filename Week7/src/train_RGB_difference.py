@@ -11,7 +11,7 @@ from tqdm import tqdm
 from utils.plots import Plots
 from datasets.HMDB51Dataset_RGB_difference import HMDB51Dataset_RGB_difference
 from models import model_creator
-from utils import model_analysis, rolling_mean
+from utils import rolling_mean
 
 
 def train(

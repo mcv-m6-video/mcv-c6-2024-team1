@@ -56,16 +56,3 @@ for k in fusion_results.keys():
 print("Accuracy (Fusion - Maximum Voting):", 100 * hits_fusion / count)
 
 
-# full trampa
-hits_total = 0
-for k in r1.keys():
-    argmax_r1 = np.argmax(r1[k])
-    argmax_r2 = np.argmax(r2[k])
-    gt_k = gt[k]
-    
-    if argmax_r2 == gt_k:
-       hits_total += argmax_r2 == gt_k
-    else:
-       hits_total += argmax_r1 == gt_k
-
-print("Accuracy (trampa):", 100 * hits_total / count)
