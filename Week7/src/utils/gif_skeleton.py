@@ -14,8 +14,8 @@ with open(skeletons_path, "rb") as f:
 
 
 
-name = 'SMILES_FROM_OFF_THE_ROAD_2_-TREASURING_THE_GIRLCHILD_smile_h_nm_np1_fr_med_3'
-folder_path = 'frames/smile/'
+name = 'Brushing_hair__the_right_way_brush_hair_u_nm_np1_fr_goo_1'
+folder_path = 'frames/brush_hair/'
 gif_writer = imageio.get_writer('plots/skeleton_'+name+'.gif', format='GIF', fps=20)
 for ann in sk['annotations']:
     if ann['frame_dir'] == name:
@@ -27,8 +27,7 @@ for ann in sk['annotations']:
                 keypoints = ann['keypoint'][0,count,:]
                 fig, ax = plt.subplots()
                 ax.imshow(img, extent=[0, 320, 240, 0])
-                ax.scatter(keypoints[:, 0], keypoints[:, 1], color='white', s=10)
-                print(len(keypoints[:, 0]))
+                ax.scatter(keypoints[:, 0], keypoints[:, 1], color='red', s=10)
                 canvas = FigureCanvas(fig)
         
                 # Update the figure layout
