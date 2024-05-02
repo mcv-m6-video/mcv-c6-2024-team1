@@ -141,15 +141,15 @@ For late fusion, use scripts `generate_outputs_skeleton.py` and `generate_output
 ### Early fusion
 To train the early fusion model, run `train_early_fusion.py` with the same parameters described above.
 
-#### Models
+### Models
 We added two new files with respect to last week. `FusionModalitiesNetwork.py` contains the multimodal model with early fusion, `EarlyFusion.py` contains the additive fusion layer.
 
-#### Utils
+### Utils
 We added the following scripts to perform additional analysis of our results:
 * `plots.py`: Class for the creation of plots such as the confusion matrix and per-class accuracy.
 * `model_analysis.py`: Script to with additional functions to study the model.
 * `gif_skeleton.py`: Script to overlay skeleton over original video.
 
-#### Eval
+### Eval
 The `plots_early_fusion.py` and `plots_rgb_diff.py` takes the same arguments as train files, and will only run evaluation procedures. Also provides some plots.
 

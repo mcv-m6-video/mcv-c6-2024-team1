@@ -33,4 +33,4 @@ The contents of the fourth week are in the folder `Week5`. The `README` file for
 The contents of the fourth week are in the folder `Week6`. The `README` file for this week can be found in [here](Week6/README.md) 
 
 ## Week 7
-The contents of the fourth week are in the folder `Week7`. The `README` file for this week can be found in [here](Week7/README.md) 
+The contents of the fourth week are in the folder `Week7`. The `README` file for this week can be found in [here](Week7/README.md). The slides for the final presentation are in [here](https://docs.google.com/presentation/d/16erXX6SzpG2sghzik5nBe1uqjFeyd05ZBJyKSo8yg_k/edit#slide=id.p)
